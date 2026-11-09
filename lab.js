@@ -218,7 +218,7 @@ function updateScore() {
   const right = g.filter(q => state[q.id] && state[q.id].correct).length;
   const answered = qs.filter(isDone).length;
   const tdone = tasks.filter(taskDone).length;
-  const chDone = chs.filter(([cid]) => state["ch-" + cid]).length;
+  const chDone = chs.filter(c => state["ch-" + c.id]).length;
   document.getElementById("scoreRight").textContent = right;
   document.getElementById("scoreTotal").textContent = g.length;
   document.getElementById("scoreSub").textContent = `${answered} of ${qs.length} questions answered`;
@@ -297,13 +297,22 @@ function challengeList(el, id) {
   const chWrap = document.createElement("div"); chWrap.className = "challenges";
   chWrap.innerHTML = `<span class="block-label">Challenges</span>`;
   const ul = document.createElement("ul");
-  SIM_CHALLENGES[id].forEach(([cid, text]) => {
-    const li = document.createElement("li"); li.id = "ch-" + cid;
-    li.innerHTML = `<span class="mark" aria-hidden="true"></span><span>${esc(text)}</span>`;
+  // Each challenge: { id, goal, steps: [...], done, hint?, answer?, answerCode? }.
+  // Text may use `backticks` for inline code.
+  const md = s => esc(s).replace(/`([^`]+)`/g, "<code>$1</code>");
+  SIM_CHALLENGES[id].forEach((c, n) => {
+    const li = document.createElement("li"); li.id = "ch-" + c.id;
+    li.innerHTML = `<span class="mark" aria-hidden="true"></span><div class="ch-body">
+      <p class="ch-goal"><span class="ch-num">${n + 1}.</span> ${md(c.goal)}</p>
+      <ol class="ch-steps">${c.steps.map(s => `<li>${md(s)}</li>`).join("")}</ol>
+      <p class="ch-done"><b>Done when:</b> ${md(c.done)}</p>
+      ${c.hint ? `<details class="ch-more"><summary>Stuck? Hint</summary><div>${md(c.hint)}</div></details>` : ""}
+      ${c.answer || c.answerCode ? `<details class="ch-more"><summary>Check your answer</summary><div>${c.answer ? `<p>${md(c.answer)}</p>` : ""}${c.answerCode ? `<pre><code>${esc(c.answerCode)}</code></pre>` : ""}</div></details>` : ""}
+    </div>`;
     ul.appendChild(li);
   });
   chWrap.appendChild(ul); el.appendChild(chWrap);
-  const paint = () => SIM_CHALLENGES[id].forEach(([cid]) => {
+  const paint = () => SIM_CHALLENGES[id].forEach(({ id: cid }) => {
     const li = document.getElementById("ch-" + cid), d = !!state["ch-" + cid];
     li.classList.toggle("done", d); li.querySelector(".mark").textContent = d ? "✓" : "○";
   });

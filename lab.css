@@ -207,10 +207,21 @@ input:focus-visible, textarea:focus-visible { outline: 2px solid var(--gold); ou
 .ro.bad b { color: var(--bad); }
 .challenges { display: grid; gap: 6px; }
 .challenges ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-.challenges li { display: grid; grid-template-columns: 22px 1fr; gap: 8px; font-size: 15px; }
+.challenges > ul > li { display: grid; grid-template-columns: 22px 1fr; gap: 8px; font-size: 15px; padding: 10px 0; border-top: 1px solid var(--line, rgba(127,127,127,.25)); }
+.ch-body { display: grid; gap: 6px; min-width: 0; }
+.ch-body p { margin: 0; }
+.ch-goal { font-weight: 600; }
+.ch-num { color: var(--muted); }
+.ch-steps { margin: 0; padding-left: 22px; display: grid; gap: 3px; }
+.ch-done { font-size: 14px; }
+.ch-done b { color: var(--good); }
+details.ch-more { border-radius: 8px; background: var(--gold-soft); padding: 6px 10px; font-size: 14px; }
+details.ch-more summary { cursor: pointer; font-weight: 600; }
+details.ch-more div { padding-top: 6px; display: grid; gap: 6px; }
+details.ch-more pre { margin: 0; overflow-x: auto; font-size: 13px; }
 .challenges .mark { font-family: var(--font-mono); color: var(--muted); }
 .challenges li.done .mark { color: var(--good); font-weight: 700; }
-.challenges li.done span:last-child { color: var(--muted); }
+.challenges li.done .ch-goal { color: var(--muted); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
 
 /* Page switcher (Auto / Teleop / Subsystems) */
