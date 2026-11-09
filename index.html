@@ -1,0 +1,967 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>CODE Gold Auto Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a lab notebook — sticky lesson rail on the left (progress + score), lessons as numbered "labs" on the right: reading, real code, hands-on "Try it" checklists, then graded checks with hints and worked solutions. */
+:root {
+  --bg: #f3f5f8;
+  --surface: #ffffff;
+  --ink: #142030;
+  --muted: #566577;
+  --line: #d8dee6;
+  --gold: #8a6100;
+  --gold-fill: #f2b705;
+  --gold-soft: #fbf1d3;
+  --good: #1d7347;
+  --good-soft: #e3f3ea;
+  --bad: #ad2a20;
+  --bad-soft: #fbe9e7;
+  --info-soft: #e8eef6;
+  --code-bg: #101b28;
+  --code-fg: #d6e1ec;
+  --code-dim: #7f93a8;
+  --code-num: #f2c14e;
+  --code-str: #8fd3a8;
+  --code-kw: #8cb8ff;
+  --font-display: "Saira Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b121b; --surface: #121c28; --ink: #e3eaf2; --muted: #93a2b4; --line: #233144;
+    --gold: #f2c14e; --gold-fill: #f2b705; --gold-soft: #2a2410;
+    --good: #5cc992; --good-soft: #10291d; --bad: #ff8277; --bad-soft: #2e1513; --info-soft: #16233a;
+    --code-bg: #070e17; --code-fg: #d6e1ec; --code-dim: #6f8399; --code-num: #f2c14e; --code-str: #8fd3a8; --code-kw: #8cb8ff;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0b121b; --surface: #121c28; --ink: #e3eaf2; --muted: #93a2b4; --line: #233144;
+  --gold: #f2c14e; --gold-fill: #f2b705; --gold-soft: #2a2410;
+  --good: #5cc992; --good-soft: #10291d; --bad: #ff8277; --bad-soft: #2e1513; --info-soft: #16233a;
+  --code-bg: #070e17; --code-fg: #d6e1ec; --code-dim: #6f8399; --code-num: #f2c14e; --code-str: #8fd3a8; --code-kw: #8cb8ff;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.6; }
+.wrap {
+  max-width: 1180px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 32px 64px;
+  display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 48px;
+}
+@media (max-width: 900px) { .wrap { grid-template-columns: minmax(0, 1fr); gap: 24px; } }
+
+/* Rail */
+.rail { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); align-self: start; display: grid; gap: 18px; max-height: calc(100vh - 48px); overflow-y: auto; }
+@media (max-width: 900px) { .rail { position: static; max-height: none; } }
+.brand { display: grid; gap: 2px; }
+.brand .team { font-family: var(--font-display); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; font-size: 13px; color: var(--gold); }
+.brand .name { font-family: var(--font-display); font-weight: 700; font-size: 30px; line-height: 1; }
+.score { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: grid; gap: 8px; }
+.score .big { font-family: var(--font-display); font-size: 32px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.score .big small { font-size: 16px; color: var(--muted); font-weight: 500; }
+.score .sub { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.bar { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.bar > i { display: block; height: 100%; width: 0; background: var(--gold-fill); transition: width .3s; }
+.toc { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+@media (max-width: 900px) { .toc { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); } }
+.toc a { display: grid; grid-template-columns: 26px 1fr auto; gap: 8px; align-items: center; padding: 6px 8px; border-radius: 6px; color: var(--ink); text-decoration: none; font-size: 14px; line-height: 1.3; }
+.toc a:hover { background: var(--surface); }
+.toc a:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
+.toc .n { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.toc .c { font-family: var(--font-mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.toc .c.done { color: var(--good); }
+.reset { justify-self: start; background: none; border: 1px solid var(--line); color: var(--muted); border-radius: 6px; padding: 6px 10px; font: inherit; font-size: 13px; cursor: pointer; }
+.reset.armed { border-color: var(--bad); color: var(--bad); }
+.reset:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+/* Main */
+main { display: grid; gap: 56px; min-width: 0; }
+.intro { display: grid; gap: 14px; max-width: 68ch; }
+.eyebrow { font-family: var(--font-display); font-weight: 600; letter-spacing: .1em; text-transform: uppercase; font-size: 13px; color: var(--gold); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(40px, 6vw, 60px); line-height: 1; margin: 0; text-wrap: balance; }
+.lede { font-size: 18px; color: var(--muted); margin: 0; }
+.legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+.legend div { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 14px; display: grid; gap: 2px; }
+.legend b { font-family: var(--font-display); font-size: 16px; letter-spacing: .02em; }
+.legend span { color: var(--muted); }
+
+.lessons { display: grid; gap: 64px; }
+.lesson { display: grid; gap: 18px; scroll-margin-top: 24px; }
+.lesson-head { display: grid; grid-template-columns: auto 1fr; gap: 4px 16px; align-items: baseline; border-top: 2px solid var(--ink); padding-top: 14px; }
+.lesson-head .num { font-family: var(--font-display); font-weight: 700; font-size: 44px; line-height: .9; color: var(--gold); font-variant-numeric: tabular-nums; grid-row: span 2; }
+.lesson-head h2 { font-family: var(--font-display); font-weight: 700; font-size: 30px; line-height: 1.05; margin: 0; text-wrap: balance; }
+.lesson-head .where { font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
+.status { display: inline-block; font-family: var(--font-body); font-size: 12px; font-weight: 600; letter-spacing: .03em; padding: 2px 8px; border-radius: 99px; background: var(--gold-soft); color: var(--gold); vertical-align: middle; margin-left: 8px; }
+.prose { max-width: 68ch; display: grid; gap: 12px; }
+.prose p { margin: 0; }
+.prose ul, .prose ol { margin: 0; padding-left: 22px; display: grid; gap: 4px; }
+.prose table { border-collapse: collapse; font-size: 14px; }
+.tbl { overflow-x: auto; }
+.prose th, .prose td { text-align: left; padding: 6px 12px 6px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+.prose th { font-weight: 600; }
+code { font-family: var(--font-mono); font-size: .88em; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; overflow-wrap: anywhere; }
+pre { margin: 0; background: var(--code-bg); color: var(--code-fg); border-radius: 10px; padding: 16px 18px; overflow-x: auto; font-family: var(--font-mono); font-size: 13px; line-height: 1.55; }
+pre code { background: none; border: 0; padding: 0; font-size: inherit; overflow-wrap: normal; }
+pre .cm { color: var(--code-dim); font-style: italic; }
+pre .nu { color: var(--code-num); }
+pre .st { color: var(--code-str); }
+pre .kw { color: var(--code-kw); }
+.figure { display: grid; gap: 6px; }
+.figure .cap { font-size: 13px; color: var(--muted); }
+.figure-scroll { overflow-x: auto; }
+svg text { font-family: var(--font-mono); }
+
+.block-label { font-family: var(--font-display); font-weight: 600; text-transform: uppercase; letter-spacing: .1em; font-size: 13px; color: var(--muted); }
+
+/* Try it tasks */
+.tasks { display: grid; gap: 12px; }
+.task { border: 1px dashed var(--gold); border-radius: 10px; padding: 14px 18px; display: grid; gap: 10px; background: var(--surface); }
+.task h3 { margin: 0; font-family: var(--font-display); font-size: 20px; font-weight: 600; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.task h3 .tag { font-family: var(--font-mono); font-size: 11px; font-weight: 400; color: var(--gold); text-transform: uppercase; letter-spacing: .06em; }
+.task .need { font-size: 13px; color: var(--muted); margin: 0; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.steps label { display: grid; grid-template-columns: 22px 1fr; gap: 8px; align-items: start; cursor: pointer; }
+.steps input { margin-top: 5px; accent-color: var(--gold-fill); width: 16px; height: 16px; }
+.steps input:checked + span { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--line); }
+details.expect { border-radius: 8px; background: var(--info-soft); padding: 8px 12px; }
+details.expect summary { cursor: pointer; font-weight: 600; font-size: 14px; }
+details.expect div { padding-top: 6px; font-size: 15px; }
+.task-done { font-size: 13px; color: var(--good); font-weight: 600; }
+
+/* Questions */
+.checks { display: grid; gap: 14px; }
+.q { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: grid; gap: 12px; }
+.q.right { border-color: var(--good); }
+.q.wrong { border-color: var(--bad); }
+.q-top { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: start; }
+.q-tag { font-family: var(--font-mono); font-size: 11px; color: var(--muted); padding-top: 4px; white-space: nowrap; }
+.q-tag.find { color: var(--gold); }
+.q-text { font-weight: 500; min-width: 0; }
+.opts { display: grid; gap: 8px; }
+.opt { text-align: left; font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; cursor: pointer; display: grid; grid-template-columns: 22px 1fr; gap: 8px; align-items: start; }
+.opt:hover:not(:disabled) { border-color: var(--gold); }
+.opt:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
+.opt:disabled { cursor: default; }
+.opt .k { font-family: var(--font-mono); font-size: 12px; color: var(--muted); padding-top: 3px; }
+.opt.is-right { border-color: var(--good); background: var(--good-soft); }
+.opt.is-wrong { border-color: var(--bad); background: var(--bad-soft); }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.row input[type="text"] { font: inherit; font-family: var(--font-mono); width: 11em; max-width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
+.row .unit { color: var(--muted); font-family: var(--font-mono); font-size: 14px; }
+textarea { font: inherit; width: 100%; min-height: 90px; padding: 10px 12px; resize: vertical; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
+input:focus-visible, textarea:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
+.btn { font: inherit; font-weight: 600; font-size: 14px; padding: 8px 14px; border-radius: 8px; cursor: pointer; background: var(--ink); color: var(--bg); border: 1px solid var(--ink); }
+.btn.ghost { background: none; color: var(--ink); border-color: var(--line); font-weight: 500; }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.hintbox { border-left: 3px solid var(--gold-fill); background: var(--gold-soft); border-radius: 0 8px 8px 0; padding: 8px 12px; font-size: 15px; }
+.hintbox b { color: var(--gold); }
+.fb { border-radius: 8px; padding: 10px 12px; font-size: 15px; display: grid; gap: 6px; }
+.fb.good { background: var(--good-soft); }
+.fb.bad { background: var(--bad-soft); }
+.fb.neutral { background: var(--gold-soft); }
+.fb b.good { color: var(--good); }
+.fb b.bad { color: var(--bad); }
+.fb b.neutral { color: var(--gold); }
+.fb ol { margin: 0; padding-left: 22px; display: grid; gap: 3px; }
+.fb .sh { font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.hint { font-size: 13px; color: var(--muted); }
+.sr { position: absolute; left: -9999px; }
+
+.done-card { border: 2px solid var(--ink); border-radius: 12px; padding: 20px 22px; display: grid; gap: 10px; max-width: 68ch; }
+.done-card h2 { font-family: var(--font-display); font-size: 28px; margin: 0; }
+.done-card p { margin: 0; }
+.done-card ul { margin: 0; padding-left: 20px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+</style>
+
+<div class="wrap">
+  <aside class="rail">
+    <div class="brand">
+      <span class="team">FRC 8352 · CODE Gold</span>
+      <span class="name">Auto Lab</span>
+    </div>
+    <div class="score" aria-live="polite">
+      <div class="big"><span id="scoreRight">0</span> <small>/ <span id="scoreTotal">0</span> correct</small></div>
+      <div class="bar"><i id="scoreBar"></i></div>
+      <div class="sub" id="scoreSub">0 of 0 questions answered</div>
+      <div class="sub" id="taskSub">0 of 0 hands-on tasks done</div>
+    </div>
+    <ul class="toc" id="toc"></ul>
+    <button class="reset" id="resetBtn" type="button">Start over</button>
+  </aside>
+
+  <main>
+    <section class="intro">
+      <span class="eyebrow">2026–27 off-season · robot code</span>
+      <h1>What we built, and why it works</h1>
+      <p class="lede">Nine labs on the autos, vision, Limelight setup and drive-to-spot code in our repo. Each one has a short reading, the real code, hands-on tasks, and questions that walk you through the thinking.</p>
+      <div class="legend">
+        <div><b>Try it</b><span>Hands-on tasks. Tick each step as you do it. Some need the laptop, the sim or the robot.</span></div>
+        <div><b>Find it in the code</b><span>Open the repo in VS Code and look the answer up. Ctrl+P opens a file, Ctrl+F searches it.</span></div>
+        <div><b>Hint first</b><span>Stuck? Open the hint. It shows how to start, not the answer. Hints don't cost points.</span></div>
+        <div><b>Worked solution</b><span>After you answer, you get the steps. Check your reasoning, not just your answer.</span></div>
+      </div>
+    </section>
+    <div class="lessons" id="lessons"></div>
+    <section class="done-card">
+      <h2>Finished?</h2>
+      <p id="doneText">Answer every question to see your result here.</p>
+      <ul id="doneList"></ul>
+    </section>
+  </main>
+</div>
+
+<script>
+const LESSONS = [
+{
+  id: "stack", title: "The pieces of our robot code", where: "build.gradle · generated/TunerConstants.java",
+  body: `
+<p>Our robot code is Java, built on three libraries that each do one job:</p>
+<ul>
+<li><b>WPILib 2026</b>: the base for every FRC robot. Runs the robot loop every 20 ms, reads the controller, runs commands.</li>
+<li><b>CTRE Phoenix 6</b>: talks to the Kraken X60 motors, CANcoders and the Pigeon 2 gyro. Phoenix Tuner X <i>generated</i> our swerve code.</li>
+<li><b>PathPlannerLib</b>: draws paths in the PathPlanner app and follows them on the robot.</li>
+</ul>
+<p><code>TunerConstants.java</code> holds the motor IDs, gear ratios and encoder offsets that Tuner X measured. If those change, we regenerate the file in Tuner X instead of typing over it. PathPlanner files in <code>src/main/deploy/pathplanner/</code> are the same: edit them in the PathPlanner app, not by hand.</p>
+<p>Before anything goes on the real robot, we build it (<code>./gradlew build</code>) and try it in simulation.</p>`,
+  tasks: [
+    { id: "t-stack", title: "Find your way around the repo", need: "Laptop with VS Code and the repo open",
+      steps: ["Press Ctrl+P, type TunerConstants, and open it.", "Press Ctrl+F and search for kSpeedAt12Volts. Note the number.", "Search the same file for kPigeonId. That's the gyro's CAN ID.", "Open the folder src/main/deploy/pathplanner/autos and count the .auto files."],
+      expect: "kSpeedAt12Volts is the robot's top speed at full battery. The Pigeon is on CAN ID 5. There are two autos: Square Test and Vision Square Test." }
+  ],
+  questions: [
+    { id: "s0", type: "num", find: true, q: "Find it in the code: in TunerConstants.java, what is kSpeedAt12Volts (the top speed)?", answer: 5.12, tol: 0.01, unit: "m/s",
+      hint: "Ctrl+P → TunerConstants, then Ctrl+F → kSpeedAt12Volts. The number is inside MetersPerSecond.of(...).",
+      steps: ["Open generated/TunerConstants.java.", "Search for kSpeedAt12Volts.", "Read the value: MetersPerSecond.of(5.12).", "That's how fast the robot would go at 12 V with nothing slowing it down. Real top speed is a bit lower."] },
+    { id: "s1", type: "mc", q: "One of the swerve modules got a new CANcoder, and its offset changed. What's the right fix?",
+      options: ["Type the new offset into TunerConstants.java", "Re-measure in Phoenix Tuner X and regenerate TunerConstants.java", "Change the offset in the PathPlanner app", "Add a correction in RobotContainer.java"], answer: 1,
+      hint: "Look at the first line of TunerConstants.java and the folder it lives in. Who wrote that file?",
+      steps: ["TunerConstants.java is in a folder called generated/. A program (Tuner X) wrote it.", "Tuner X measures offsets directly from the CANcoders, so it's more accurate than typing.", "If you hand-edit, the next regenerate wipes your change, and nobody knows why the robot broke.", "So: re-measure and regenerate."] },
+    { id: "s2", type: "mc", q: "Which library is in charge of following a path the robot was given?",
+      options: ["WPILib", "Phoenix 6", "PathPlannerLib", "LimelightHelpers"], answer: 2,
+      hint: "Which library also has an app where you draw the paths?",
+      steps: ["Paths are drawn in the PathPlanner app.", "PathPlannerLib reads those paths on the robot and works out how fast to go each loop.", "It hands those speeds to the drivetrain; Phoenix 6 turns them into motor commands."] },
+    { id: "s3", type: "mc", q: "You changed some code. What should happen before it runs on the real robot?",
+      options: ["Deploy it and watch closely", "Build it, then test it in simulation", "Ask PathPlanner to check it", "Nothing, if it looks right"], answer: 1,
+      hint: "Think about two kinds of mistakes: ones the computer can catch, and ones only running it will show.",
+      steps: ["A build catches typos and type errors (the code won't even compile).", "Simulation runs the code and catches logic mistakes, like a path going the wrong way.", "Both are free. A mistake on the real robot can break parts or hurt someone."] }
+  ]
+},
+{
+  id: "autobuilder", title: "Connecting PathPlanner to the drivetrain", where: "subsystems/CommandSwerveDrivetrain.java · configureAutoBuilder()",
+  body: `
+<p>PathPlanner doesn't know anything about our robot until we tell it. <code>AutoBuilder.configure(...)</code> hands it everything it needs: how to read where the robot is, how to reset that position, and how to drive.</p>
+<p>The <b>path PID</b> fixes mistakes while following. A P controller is just: <b>correction = kP × error</b>. If the robot drifts off the path, the translation gain (10) asks for extra speed back toward it. The rotation gain (7) does the same for heading.</p>
+<p>The <b>wheel force feedforwards</b> tell each wheel how hard to push to speed up or slow down, so the robot doesn't wait to fall behind before reacting.</p>
+<p>Those feedforwards come from the robot config in <code>pathplanner/settings.json</code>, so its numbers matter. We found two that need fixing: the <b>mass</b> (30 lb) should be the full robot <i>with battery and bumpers</i>, and the <b>bumper size</b> (26 × 25 in) is really the <i>frame</i> size. The mass changes the feedforwards; the bumper size only changes how the robot is drawn in PathPlanner.</p>`,
+  code: `AutoBuilder.configure(
+    () -> getState().Pose,   // Supplier of current robot pose
+    this::resetPose,         // Consumer for seeding pose against auto
+    () -> getState().Speeds, // Supplier of current robot speeds
+    // Consumer of ChassisSpeeds and feedforwards to drive the robot
+    (speeds, feedforwards) -> setControl(
+        m_pathApplyRobotSpeeds.withSpeeds(ChassisSpeeds.discretize(speeds, 0.020))
+            .withWheelForceFeedforwardsX(feedforwards.robotRelativeForcesXNewtons())
+            .withWheelForceFeedforwardsY(feedforwards.robotRelativeForcesYNewtons())
+    ),
+    new PPHolonomicDriveController(kPathTranslationPID, kPathRotationPID),
+    config,
+    // Paths are drawn for the blue alliance; flip them when we're red
+    () -> DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Red,
+    this // Subsystem for requirements
+);`,
+  tasks: [
+    { id: "t-pid", title: "Read the PID gains yourself", need: "Laptop with the repo open",
+      steps: ["Open CommandSwerveDrivetrain.java.", "Search for kPathTranslationPID. Write down the three numbers in PIDConstants(...).", "Do the same for kPathRotationPID.", "The three numbers are P, I and D. Which ones are zero?"],
+      expect: "Translation is PIDConstants(10, 0, 0) and rotation is PIDConstants(7, 0, 0). Only P is used; I and D are 0. Most FRC path following works fine with P alone." }
+  ],
+  questions: [
+    { id: "a0", type: "num", find: true, q: "Find it in the code: what's the P gain in kPathRotationPID?", answer: 7, tol: 0.001, unit: "",
+      hint: "Same file as the code above. Search for kPathRotationPID; the first number in PIDConstants(...) is P.",
+      steps: ["Open CommandSwerveDrivetrain.java and search kPathRotationPID.", "It's new PIDConstants(7, 0, 0).", "The order is (P, I, D), so P = 7."] },
+    { id: "a1", type: "num", q: "Translation P is 10. Partway through a path, the robot is 5 cm behind where it should be. How much extra speed does the P term ask for?", answer: 0.5, tol: 0.01, unit: "m/s",
+      hint: "Use correction = kP × error. Convert 5 cm to meters first, because kP works in meters.",
+      steps: ["Write the formula: correction = kP × error.", "Convert the error to meters: 5 cm = 0.05 m.", "Multiply: 10 × 0.05 = 0.5.", "Units: kP turns meters of error into m/s of speed, so the answer is 0.5 m/s.", "Sanity check: twice the error (10 cm) would give twice the push (1 m/s)."] },
+    { id: "a1b", type: "num", q: "Rotation P is 7. The robot is facing 0.1 radians (about 6°) away from where the path wants. How much turning speed does the P term ask for?", answer: 0.7, tol: 0.01, unit: "rad/s",
+      hint: "Same formula as the last one, just with the rotation gain and an angle error.",
+      steps: ["correction = kP × error.", "kP = 7, error = 0.1 rad.", "7 × 0.1 = 0.7 rad/s of turning back toward the right heading.", "0.7 rad/s is about 40°/s, so the 6° error is fixed quickly."] },
+    { id: "a2", type: "mc", q: "Look at the alliance line. We're on the red alliance. What does PathPlanner do with our paths?",
+      options: ["Nothing, it runs them as drawn", "Mirrors them to the red side of the field", "Refuses to run them", "Runs them backwards"], answer: 1,
+      hint: "Read the comment above that line. What does the lambda return when we're red?",
+      steps: ["The lambda is: getAlliance() ... == Alliance.Red.", "On red, it returns true.", "That argument is PathPlanner's \"should I flip?\" question. true means flip.", "So paths we drew for blue get mirrored to the red side."] },
+    { id: "a3", type: "mc", q: "In the simulator, the alliance shows \"Invalid\" (no alliance yet). Which way does the code treat it?",
+      options: ["As red", "As blue", "It crashes", "It asks the driver"], answer: 1,
+      hint: "getAlliance() can come back empty. What does .orElse(...) do with an empty value?",
+      steps: ["No alliance means getAlliance() is empty.", ".orElse(Alliance.Blue) means \"if empty, use Blue\".", "Blue == Red is false, so nothing flips."] },
+    { id: "a5", type: "mc", q: "settings.json says the robot weighs 30 lb, but with the battery and bumpers it's really about 50 lb. What does that do to path following?",
+      options: ["Nothing, PathPlanner ignores mass", "The feedforwards push too gently, so the robot lags behind the path when speeding up and overshoots when slowing down", "The robot goes faster than the path", "Only the drawing in PathPlanner changes"], answer: 1,
+      hint: "Force = mass × acceleration. If PathPlanner thinks the robot is lighter, how much force does it ask for?",
+      steps: ["Feedforward force = mass × acceleration (F = m·a).", "PathPlanner thinks m = 30 lb, so it asks for about 30/50 = 60% of the force really needed.", "Speeding up: not enough push, so the robot falls behind.", "Slowing down: not enough braking, so it overshoots.", "The PID then has to fix it, so PID tuning on the Square Test gets thrown off. Weigh the robot first, then tune."] },
+    { id: "a6", type: "mc", q: "The bumper size in settings.json is wrong (it's the frame size). What does fixing it change?",
+      options: ["The feedforwards", "How the robot is drawn in the PathPlanner app (it's for visualization)", "The robot's top speed", "The vision pose"], answer: 1,
+      hint: "Re-read the paragraph above. Which number affects the math, and which one affects the picture?",
+      steps: ["Bumper size is used to draw the robot's outline in PathPlanner.", "It doesn't change how the robot drives.", "It's still worth fixing so the drawn robot matches the real one when you plan paths near walls."] },
+    { id: "a4", type: "mc", q: "What's the job of ChassisSpeeds.discretize(speeds, 0.020)?",
+      options: ["Limits top speed to 0.020 m/s", "Adjusts the speeds for our 20 ms loop so the robot doesn't curve while turning and driving", "Rounds speeds to 2 decimal places", "Delays the command by 20 ms"], answer: 1,
+      hint: "0.020 s is a number you've seen in lab 1. What runs every 20 ms?",
+      steps: ["The robot loop runs every 20 ms = 0.020 s, so each speed command lasts that long.", "Driving and spinning at the same time over 20 ms makes a tiny curve instead of a straight line.", "discretize corrects the speeds so the robot ends up where it meant to."] }
+  ]
+},
+{
+  id: "chooser", title: "Picking an auto and named commands", where: "RobotContainer.java",
+  body: `
+<p>The <b>Auto Mode</b> menu on the dashboard lists every auto in <code>pathplanner/autos</code>. <code>buildAutoChooser("Square Test")</code> makes that menu with Square Test picked by default. When auto starts, the robot runs whatever is picked.</p>
+<p><b>Named commands</b> let an auto in the PathPlanner app call our Java code. The app only stores a name like <code>"Vision On"</code>; the robot looks up which command that name means. Square Test starts with <code>Vision Off</code>. Vision Square Test starts with <code>Vision On</code>.</p>`,
+  code: `// Named commands let PathPlanner autos call our code. They must be registered
+// BEFORE the autos are built, or PathPlanner won't find them.
+NamedCommands.registerCommand("Vision On", vision.setEnabledCommand(true));
+NamedCommands.registerCommand("Vision Off", vision.setEnabledCommand(false));
+
+// Default selection is the Square Test; pick others from the "Auto Mode" chooser
+autoChooser = AutoBuilder.buildAutoChooser("Square Test");
+SmartDashboard.putData("Auto Mode", autoChooser);`,
+  tasks: [
+    { id: "t-chooser", title: "Pick an auto in the simulator", need: "Laptop with WPILib 2026",
+      steps: ["Ctrl+Shift+P → WPILib: Simulate Robot Code → Sim GUI.", "Find the Robot Simulation window (it often opens behind VS Code).", "NetworkTables → SmartDashboard → Auto Mode. Pick Vision Square Test.", "Click Autonomous, watch it run, then click Disabled.", "Open the PathPlanner app, open Vision Square Test, and find the Vision On block at the start.", "Stop the sim with Shift+F5 in VS Code."],
+      expect: "The robot drives the square on the field view. In PathPlanner, the first block in Vision Square Test is a named command called Vision On, then the four Square paths." }
+  ],
+  questions: [
+    { id: "c1", type: "mc", q: "Someone moves the two registerCommand lines below buildAutoChooser. What goes wrong?",
+      options: ["Nothing, order doesn't matter in Java", "The autos get built before the names exist, so \"Vision On\"/\"Vision Off\" do nothing", "The dashboard menu disappears", "The robot drives faster"], answer: 1,
+      hint: "Java runs these lines top to bottom. When buildAutoChooser runs, what does it need to already exist?",
+      steps: ["buildAutoChooser builds every auto right away, including its named-command steps.", "To build \"Vision On\", it looks up that name.", "If registerCommand hasn't run yet, the name isn't there, so that step becomes a do-nothing.", "The auto still drives, but vision is never turned on. A sneaky bug, because nothing crashes."] },
+    { id: "c2", type: "mc", q: "Nobody touches the Auto Mode menu before a match. Which auto runs?",
+      options: ["None", "Vision Square Test", "Square Test", "The last one that ran"], answer: 2,
+      hint: "Look at what's inside buildAutoChooser(...).",
+      steps: ["The string passed to buildAutoChooser is the default selection.", "It's \"Square Test\"."] },
+    { id: "c3", type: "write", q: "In your own words: why does the plain Square Test start with \"Vision Off\"?",
+      hint: "What is the Square Test trying to measure? What would the camera do to that measurement?",
+      model: "The Square Test measures how much wheel odometry drifts on its own. If the camera were correcting the position, we couldn't tell how good the odometry really is. Turning vision off first makes it a pure odometry test, and Vision Square Test is the same path with vision on for comparison." }
+  ]
+},
+{
+  id: "square", title: "The Square Test", where: "pathplanner/autos/Square Test.auto",
+  body: `
+<p>The Square Test is a tuning tool, not a match auto. It drives four straight 2 m sides at 1.5 m/s, keeps facing 0° the whole time, and stops at each corner. Then it should be back exactly where it started.</p>
+<p>We run it 5 times and measure how far from the start mark it ends up each time. That tells us how much the robot's position estimate drifts, and the pattern tells us why.</p>
+<div class="tbl"><table><tr><th>If you see…</th><th>It probably means…</th></tr>
+<tr><td>Every side short (or long) by the same amount</td><td>Wheel size in the code is off</td></tr>
+<tr><td>Overshoots or lags at the corners</td><td>Path PID needs tuning</td></tr>
+<tr><td>Different end spot every run</td><td>Wheels slipping</td></tr></table></div>`,
+  figure: true,
+  tasks: [
+    { id: "t-square", title: "Run and measure the Square Test", need: "Robot, tape measure, tape, a clear 3 × 3 m area",
+      steps: ["Tape an L-shaped mark on the floor. Line up a front corner of the bumper with it.", "Select Square Test, enable Autonomous, and stand clear.", "When it stops, measure how far the same bumper corner is from the mark: forward/back (x) and left/right (y), in cm.", "Write it down, put the robot back on the mark, and repeat until you have 5 runs.", "Work out the average x error and average y error."],
+      expect: "You'll have 5 (x, y) errors. If they're all close together, the error is consistent (look at wheel size or PID). If they're scattered, look for slipping. Then do the same with Vision Square Test and compare." }
+  ],
+  questions: [
+    { id: "q1", type: "num", q: "How far does the robot drive in one Square Test?", answer: 8, tol: 0.01, unit: "m",
+      hint: "Count the sides in the diagram, and check how long each one is.",
+      steps: ["The square has 4 sides.", "Each side is 2 m: (2,3) → (4,3) is 4 − 2 = 2 m in x.", "4 × 2 m = 8 m."] },
+    { id: "q1b", type: "num", q: "Five runs ended this far forward of the mark (x error, cm): 3, 4, 2, 5, 1. What's the average x error?", answer: 3, tol: 0.01, unit: "cm",
+      hint: "Average = add them all up, then divide by how many there are.",
+      steps: ["Add them: 3 + 4 + 2 + 5 + 1 = 15.", "Count them: 5 runs.", "15 ÷ 5 = 3 cm.", "Every run was forward, by roughly the same amount. That points at a consistent cause, not slipping."] },
+    { id: "q1c", type: "num", q: "The robot thinks it drove a 2.00 m side, but you measure 1.94 m. By what percent is it short?", answer: 3, tol: 0.05, unit: "%",
+      hint: "Percent error = (difference ÷ what it should be) × 100.",
+      steps: ["Difference: 2.00 − 1.94 = 0.06 m.", "Divide by what it should be: 0.06 ÷ 2.00 = 0.03.", "× 100 = 3%.", "If every side is about 3% short, the code's wheel size is about 3% too big."] },
+    { id: "q2", type: "mc", q: "Over 5 runs, the robot stops in a different spot every time, with no pattern. Most likely cause?",
+      options: ["Wheel size in the code is wrong", "Path PID needs tuning", "The wheels are slipping", "The paths are flipped"], answer: 2,
+      hint: "Which of these would be the same every run, and which would be random?",
+      steps: ["A wrong wheel size gives the same error every run.", "Bad PID gives a similar overshoot every run.", "Slipping depends on the floor, dust and tread, so it's random.", "Random error → slipping."] },
+    { id: "q3", type: "mc", q: "Every side comes out about 3% short, every run. Most likely cause?",
+      options: ["Wheel size in the code is a bit off (tread wear)", "The Limelight is off", "The gyro is drifting", "Wheels slipping"], answer: 0,
+      hint: "The robot counts wheel turns and multiplies by the wheel's size. What if the size is wrong?",
+      steps: ["Distance the robot thinks = wheel turns × wheel circumference in the code.", "Treads wear down, so the real wheel gets a little smaller.", "The code still uses the bigger size, so it thinks it went farther than it did.", "It stops early on every side by the same percent."] },
+    { id: "q4", type: "mc", q: "Why run it 5 times instead of once?",
+      options: ["PathPlanner needs 5 runs to learn", "One run could be luck; 5 shows the average and how much it varies", "To warm up the motors", "The rules require it"], answer: 1,
+      hint: "Think about the last few questions: how did you tell a consistent error from a random one?",
+      steps: ["One run gives one number. You can't tell if it's typical.", "Five runs give an average (the consistent part) and a spread (the random part).", "You need both to pick the right fix."] }
+  ]
+},
+{
+  id: "vision", title: "Vision: correcting position with AprilTags", where: "subsystems/Vision.java · periodic()",
+  body: `
+<p>Wheel odometry drifts a little every second. The Limelight 4 fixes that: it sees AprilTags, knows where each tag is on the field, and works out where the robot is (<b>MegaTag2</b>).</p>
+<p>We don't just replace our position with the camera's. We <b>blend</b> it in with <code>addVisionMeasurement</code>. The <b>standard deviation</b> says how much to trust it: bigger number, trust it less. We use 0.7 m for x and y, and a huge number for heading so vision never changes it; the Pigeon gyro is better at heading.</p>
+<p>Every loop we check three things before using the camera's answer. All three must be true (that's what <code>&amp;&amp;</code> means).</p>`,
+  code: `// 1. MegaTag2 needs the robot's heading every loop, even when we're not using the result
+LimelightHelpers.SetRobotOrientation(kLimelightName,
+    state.Pose.getRotation().getDegrees(), 0, 0, 0, 0, 0);
+
+// 2. Where does the Limelight think we are?
+var estimate = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(kLimelightName);
+boolean seesTags = estimate != null && estimate.tagCount > 0;
+boolean spinningTooFast = Math.abs(yawRateDegPerSec) > kMaxYawRateDegPerSec; // 720
+boolean accepted = m_enabled && seesTags && !spinningTooFast;
+
+// 3. Blend it in only if it looks trustworthy
+if (accepted) {
+    m_drivetrain.addVisionMeasurement(
+        estimate.pose,
+        estimate.timestampSeconds,
+        VecBuilder.fill(kXYStdDev, kXYStdDev, kHeadingStdDev) // 0.7, 0.7, 9999999
+    );
+}`,
+  tasks: [
+    { id: "t-vision", title: "Watch vision accept and reject", need: "Robot with Limelight on, a few AprilTags, laptop with the dashboard",
+      steps: ["Enable teleop (vision turns on automatically). Open SmartDashboard values Vision/Enabled, Vision/Tag Count and Vision/Accepted.", "Point the camera at a tag. Write down Tag Count and Accepted.", "Cover the lens with your hand. What changes?", "Uncover it and spin the robot in place as fast as the driver safely can. Watch Accepted.", "Unplug the Limelight's Ethernet for a moment while disabled. What do the three values show?"],
+      expect: "Seeing a tag: Tag Count ≥ 1, Accepted true. Lens covered or unplugged: Tag Count 0, Accepted false, Enabled still true. Spinning fast: Accepted flickers false even though Tag Count is above 0." }
+  ],
+  questions: [
+    { id: "v1", type: "mc", q: "Predict it: vision is enabled, the camera sees 2 tags, and the robot is spinning at 800°/s. Is the estimate used?",
+      options: ["Yes, 2 tags is plenty", "No, it's spinning faster than 720°/s", "Only the x and y", "Only if it's teleop"], answer: 1,
+      hint: "Work out each boolean one at a time, then combine them with &&.",
+      steps: ["m_enabled = true.", "seesTags: tagCount is 2, which is > 0, so true.", "spinningTooFast: |800| > 720, so true.", "accepted = true && true && !true = true && true && false = false.", "One false in an && chain makes the whole thing false. Not used."] },
+    { id: "v1b", type: "mc", q: "Predict it: vision enabled, 1 tag in view, spinning at −300°/s (turning the other way). Used?",
+      options: ["Yes", "No, negative spin is always rejected", "No, 1 tag isn't enough", "Only heading is used"], answer: 0,
+      hint: "Math.abs(...) is the size of a number without its sign. What's Math.abs(−300)?",
+      steps: ["m_enabled = true.", "seesTags: 1 > 0, true.", "Math.abs(−300) = 300. Is 300 > 720? No, so spinningTooFast = false.", "accepted = true && true && !false = true. Used.", "Math.abs is there so turning left and turning right are treated the same."] },
+    { id: "v2", type: "mc", q: "During Vision Square Test the Limelight is unplugged. What happens?",
+      options: ["The code crashes", "The robot stops", "It runs on wheel odometry and the gyro, like the normal Square Test", "It uses the last pose the camera sent"], answer: 2,
+      hint: "No camera means no tags. Which boolean goes false, and what does that do to accepted?",
+      steps: ["With no data, the estimate has tagCount = 0.", "seesTags = (0 > 0) = false.", "accepted = true && false && ... = false.", "addVisionMeasurement is never called, so only odometry and the gyro are used. Nothing crashes."] },
+    { id: "v3", type: "mc", q: "Why is the heading standard deviation 9999999?",
+      options: ["It's a typo", "So vision never changes the heading; the gyro is better at it", "So vision is trusted more for heading", "To make the code run faster"], answer: 1,
+      hint: "Remember: bigger standard deviation = trust it less. What does a gigantic one mean?",
+      steps: ["A huge standard deviation means \"basically ignore this value.\"", "Step 1 sends our gyro heading to MegaTag2, which uses it to find the position.", "Letting vision then \"correct\" the heading would just feed the gyro's own number back in.", "So we keep heading 100% gyro."] },
+    { id: "v4", type: "mc", q: "We change the x/y standard deviation from 0.7 to 0.3. What changes?",
+      options: ["Vision pulls the position harder (trusted more)", "Vision is trusted less", "The camera sees farther", "Nothing"], answer: 0,
+      hint: "Smaller spread = the measurement is more precise.",
+      steps: ["Standard deviation is how far off a reading usually is.", "0.3 m says \"this camera is usually within 30 cm\", tighter than 0.7 m.", "The pose estimator trusts tighter readings more, so it moves the position closer to each one."] },
+    { id: "v5", type: "num", find: true, q: "Find it in the code: in Vision.java, what is kMaxYawRateDegPerSec?", answer: 720, tol: 0.5, unit: "°/s",
+      hint: "Ctrl+P → Vision.java (on main), then Ctrl+F → kMaxYawRateDegPerSec.",
+      steps: ["Open subsystems/Vision.java.", "Search kMaxYawRateDegPerSec.", "It's 720: two full turns per second.", "Faster than that, the camera image blurs, so we skip vision."] },
+    { id: "v6", type: "mc", q: "Why does step 1 (SetRobotOrientation) run even when vision is turned off?",
+      options: ["It doesn't matter, it could be skipped", "MegaTag2 needs our current heading to give a good answer, so it must always be up to date", "It turns the camera's LEDs on", "It resets the gyro"], answer: 1,
+      hint: "What does MegaTag2 use from the robot? What happens if that's old when vision comes back on?",
+      steps: ["MegaTag2 combines what it sees with our gyro heading.", "If we stopped sending the heading while vision was off, the camera would have an old one.", "The first answers after turning vision back on would be wrong.", "So we always keep it updated, even when we ignore the result."] }
+  ]
+},
+{
+  id: "limelight", title: "Setting up a Limelight", where: "Limelight web UI · VisionConstants.java",
+  body: `
+<p>Before the code can use a Limelight, the camera itself has to be set up. Each Limelight has its own web page where you change its settings (port <code>5801</code>, for example <code>http://limelight.local:5801</code>).</p>
+<p><b>1. A unique name and address.</b> The code finds each camera by its <b>hostname</b>, so every Limelight needs its own. Give each a <b>static IP</b> on our team network too. FRC team networks are <code>10.TE.AM.x</code>; for 8352 that's <code>10.83.52.x</code>.</p>
+<div class="tbl"><table><tr><th></th><th>Front camera</th><th>Back camera</th></tr>
+<tr><td>Hostname</td><td><code>limelight-front</code></td><td><code>limelight-back</code></td></tr>
+<tr><td>Static IP</td><td><code>10.83.52.11</code></td><td><code>10.83.52.12</code></td></tr></table></div>
+<p>Today we run one camera named <code>limelight</code> (the default). When we add a second, both get renamed as above, and the names in the code must match exactly.</p>
+<p><b>2. A field map.</b> The Limelight needs to know where every tag is. On the real field it uses the official map. In the shop, it needs a <b>custom map</b> that matches where our tags are actually taped up.</p>
+<p><b>3. Where the camera is mounted.</b> The Limelight works out where the <i>camera</i> is. To get the <i>robot center</i>, it needs the mount position, measured from the center of the robot at floor level:</p>
+<ul>
+<li><b>forward</b>: meters in front of center (behind = negative)</li>
+<li><b>side</b>: meters to the side of center (see the sign check task below)</li>
+<li><b>up</b>: meters above the floor</li>
+<li><b>roll / pitch / yaw</b>: degrees of tilt. Pitch is tilted up or down; yaw is which way it points (0 = robot front, 180 = robot back).</li>
+</ul>
+<p>The mount values live in <b>our code</b> (<code>Vision.java</code>), and the code sends them to the Limelight every time it starts. That means <b>the numbers in the code are the ones that count</b>: they overwrite whatever is typed in the web page. Keep the web page matching anyway, so the 3D visualizer shows the right picture. Keeping them in the code also saves them in Git, so nobody loses them if a Limelight gets reset or swapped.</p>
+<p><b>Our robot's numbers.</b> The frame is 26 in front to back and 25 in side to side. The robot center is the center of the rectangle made by the four swerve modules (±10.375 in by ±9.875 in). Our <b>test mount</b> (temporary) has the camera at the front center, facing forward, lens 5 in off the floor:</p>
+<div class="tbl"><table><tr><th>forward</th><th>side</th><th>up</th><th>roll</th><th>pitch</th><th>yaw</th></tr>
+<tr><td>0.330 m</td><td>0.000 m</td><td>0.127 m</td><td>0°</td><td>0° if level (to be checked)</td><td>0°</td></tr></table></div>
+<p>The competition mount will be higher and probably tilted up 15–30°, so all of this gets measured again then.</p>
+<p><b>Check signs in the 3D visualizer.</b> The Limelight web page has a 3D view of the robot and camera. If the camera shows up tilted down when it's really tilted up, or on the wrong side, the sign is wrong. Set the visualizer's robot size to the bumper size (about 0.83 × 0.80 m). That size only changes the picture, not the math.</p>
+<p><b>When is vision "done"?</b> Put the robot on a taped spot at a measured distance from a tag. The Limelight's robot pose must be within <b>5 cm</b> and <b>2°</b> of the real spot at <b>1 m, 2 m and 3 m</b>. Write the results down. Redo this check every time the camera is moved.</p>
+<p><b>Two common bugs:</b> two cameras both left as the default name <code>limelight</code>, and wrong mount values. With two cameras, wrong values make them disagree, and the robot's position wobbles back and forth.</p>
+<p><b>Tools:</b> use <b>AdvantageScope</b> (3D field) to compare the vision pose with the odometry pose while debugging, and <b>Elastic</b> as the driver dashboard. Elastic only has the 2026 field after updating WPILib to 2026.2.1 or newer. Keep every team laptop on the same WPILib version.</p>
+<p><b>Coming later: object detection.</b> The Limelight can also spot game pieces with a <b>Neural Detector</b> pipeline: about 20 FPS on the Limelight 4 by itself, about 80 FPS with a Hailo-8 add-on. Custom models are trained from photos we label ourselves. Before training, we'll decide what success looks like (for example, auto-intake picks up a piece reliably).</p>`,
+  figure: "mount",
+  tasks: [
+    { id: "t-ll-net", title: "Name the camera and give it an address", need: "Limelight powered and on the robot network, laptop",
+      steps: ["Open the Limelight's web page (http://limelight.local:5801).", "Find the Settings tab. Write down its current hostname and IP.", "With a mentor, set the static IP to 10.83.52.11. (Only rename it when we add the second camera, and update the code at the same time.)", "Reboot the Limelight and open http://10.83.52.11:5801 to check the new address works."],
+      expect: "The page opens at 10.83.52.11. If it doesn't, the laptop may not be on the robot network, or the IP was typed wrong. Fix it from the robot radio's network or with a mentor." },
+    { id: "t-ll-mount", title: "Measure the camera mount", need: "Tape measure, angle finder or phone level app, robot on a flat floor",
+      steps: ["Mark the center of the robot on the floor (halfway between the front and back bumpers, and halfway between the sides).", "Measure forward from that mark to the camera lens. Convert to meters.", "Measure side to side from center to the lens. Note which side.", "Measure from the floor straight up to the lens.", "Measure the tilt: how many degrees the camera is tilted up (pitch), and which way it points (yaw).", "With a mentor, put the numbers in Vision.java (kCameraForward, kCameraSide…) and type the same numbers into the Limelight web page, then open a PR."],
+      expect: "For our test mount you should get about: forward 0.330, side 0.000, up 0.127, roll 0, pitch 0 (if level), yaw 0. Measure twice: a 5 cm mistake here makes every vision position 5 cm off." },
+    { id: "t-ll-check", title: "Check the signs in the 3D visualizer", need: "Limelight web page open, mount values entered",
+      steps: ["Open the Limelight web page and find the 3D visualizer.", "Set the robot size to the bumper size (about 0.83 m long × 0.80 m wide).", "Look at where the camera appears on the robot. Is it at the front? At the right height?", "Tilt check: if the real camera is tilted up, does the picture show it tilted up? If it's tilted down, flip the pitch sign.", "Side check (for a camera that isn't centered): is it on the correct side? If not, flip the side sign.", "Write down which way is positive so the next person doesn't have to guess."],
+      expect: "The 3D picture matches the real robot: camera at the front center, about 13 cm up, pointing forward. If the picture and the robot disagree, the robot is right and the numbers need fixing." },
+    { id: "t-ll-done", title: "The 1-2-3 meter check (definition of done)", need: "Robot, one AprilTag on a wall, tape measure, tape, laptop",
+      steps: ["Tape spots on the floor 1 m, 2 m and 3 m straight out from the tag. Measure from the tag to the robot center.", "Put the robot on the 1 m spot, facing the tag, with vision on.", "Read the Limelight's robot pose. Write down how far off it is (cm) and how far off the heading is (°).", "Repeat at 2 m and 3 m.", "Pass if every spot is within 5 cm and 2°. Record the results with the date and the mount used."],
+      expect: "A results table like: 1 m: 2 cm, 1° · 2 m: 3 cm, 1° · 3 m: 4 cm, 2° → pass. Errors usually grow with distance. If 1 m is already bad, suspect the mount values; if only 3 m is bad, the camera may just be too far for good accuracy." }
+  ],
+  questions: [
+    { id: "l1", type: "text", q: "What IP address goes with team 8352's front Limelight? (10.TE.AM.x, ending in .11)", accept: ["10.83.52.11"], placeholder: "10.__.__.__",
+      hint: "Split the team number into two-digit pieces: 83 and 52. Put them in the middle of 10.__.__.11.",
+      steps: ["FRC team networks are 10.TE.AM.x.", "Team 8352 → TE = 83, AM = 52.", "Front camera is .11.", "So: 10.83.52.11. (The roboRIO is 10.83.52.2 on the same network.)"] },
+    { id: "l2", type: "num", q: "Our robot: the frame is 26 in front to back, and the test camera sits right at the front edge, centered. What's the forward value in meters? (1 in = 0.0254 m)", answer: 0.330, tol: 0.003, unit: "m",
+      hint: "Forward is measured from the center, not the front edge. How far is the center from the front? Then convert inches to meters.",
+      steps: ["Center to front edge = half the length: 26 ÷ 2 = 13 in.", "Convert: 13 × 0.0254 = 0.3302 m.", "Round to 0.330 m. That matches our test mount value.", "Positive, because it's in front of center."] },
+    { id: "l2b", type: "num", q: "The test camera's lens is 5 in off the floor. What's the up value in meters?", answer: 0.127, tol: 0.002, unit: "m",
+      hint: "Up is measured from the floor, so it's just the height. Convert inches to meters.",
+      steps: ["Up = height above the floor = 5 in.", "5 × 0.0254 = 0.127 m."] },
+    { id: "l2c", type: "num", q: "The frame is 26 in long. If the bumpers add about 3.25 in on each end, about how long is the robot with bumpers?", answer: 32.5, tol: 0.05, unit: "in",
+      hint: "Bumpers go on both ends, front and back.",
+      steps: ["Bumpers add 3.25 in at the front and 3.25 in at the back: 2 × 3.25 = 6.5 in.", "26 + 6.5 = 32.5 in.", "That's only an estimate. The real bumpers still need measuring."] },
+    { id: "l2d", type: "mc", q: "The 1-2-3 m check at 2 m: the pose is 4 cm off and the heading is 3° off. Does it pass?",
+      options: ["Yes, 4 cm is under 5 cm", "No, 3° is more than the 2° limit", "Yes, because only distance matters", "Only if 1 m and 3 m also pass"], answer: 1,
+      hint: "There are two limits, and both have to pass.",
+      steps: ["Limit 1: within 5 cm. 4 cm passes.", "Limit 2: within 2°. 3° fails.", "Both have to pass, so this spot fails.", "A heading error usually means the yaw value or the tag map is off, so check those."] },
+    { id: "l2e", type: "mc", q: "We move the camera to the competition mount: higher and tilted up 20°. What has to happen?",
+      options: ["Nothing, the Limelight figures it out", "Only change pitch to 20", "Re-measure every mount value, update the code, and redo the 1-2-3 m check", "Just redo the Square Test"], answer: 2,
+      hint: "Which mount numbers change when the camera moves up and tilts?",
+      steps: ["Higher changes up, and probably forward too.", "Tilted changes pitch.", "Any mistake in those shows up as position error, so we prove it again with the 1-2-3 m check.", "Rule: every time the camera moves, re-measure and re-check."] },
+    { id: "l3", type: "num", q: "A second camera is mounted on the back, pointing straight backwards. What yaw does it get?", answer: 180, tol: 0.5, unit: "°",
+      hint: "Yaw 0 points at the robot's front. How many degrees do you turn to face the back?",
+      steps: ["Yaw 0 = pointing forward.", "Facing straight back is half a turn.", "Half of 360° = 180°.", "(−180 is the same direction, so either works.)"] },
+    { id: "l4", type: "num", q: "That back camera is 0.25 m behind the robot's center. What's its forward value?", answer: -0.25, tol: 0.005, unit: "m",
+      hint: "Forward is positive in front of center. What sign is behind?",
+      steps: ["Behind center means the opposite of forward.", "So the number is negative: −0.25 m.", "Common mistake: putting 0.25 because \"it's 25 cm away.\" The sign tells the Limelight which way."] },
+    { id: "l4b", type: "mc", q: "Someone moves the camera and types the new mount values into the Limelight web page, but doesn't change Vision.java. What happens when the robot code runs?",
+      options: ["The web page values win", "The code's old values overwrite the web page, so every vision pose is off by however much the camera moved", "The camera turns off", "The two get averaged"], answer: 1,
+      hint: "The code sends its values over the network every time it starts. Which one does the camera use last?",
+      steps: ["Vision.java calls setCameraPose_RobotSpace when the code starts.", "That replaces whatever was typed in the web page.", "So the camera uses the old position from the code.", "Every pose is off by however far the camera moved.", "Rule: change the code (and the web page to match), then redo the 1-2-3 m check."] },
+    { id: "l5", type: "mc", q: "The code says the camera is named \"limelight\", but someone renamed it to \"limelight-front\" in the web page and didn't change the code. What do you see on the dashboard?",
+      options: ["Everything works", "Tag Count stays 0 and Accepted stays false, even looking straight at a tag", "The robot drives to the wrong spot", "The camera reboots"], answer: 1,
+      hint: "The code asks for data under one name. The camera is publishing under another. What does the code get back?",
+      steps: ["The code reads data from the name \"limelight\".", "The camera now publishes as \"limelight-front\", so nothing arrives under \"limelight\".", "No data → tagCount = 0 → seesTags false → accepted false.", "Nothing crashes, so it's easy to miss. Always change the name in both places at once."] },
+    { id: "l6", type: "mc", q: "Two cameras both see tags, but the robot's position on the field view keeps jumping back and forth by about 10 cm. Most likely cause?",
+      options: ["Too many tags", "One or both camera mount values are wrong, so the cameras disagree", "The gyro is broken", "The PID is too high"], answer: 1,
+      hint: "If both cameras were set up perfectly, would they agree about where the robot is?",
+      steps: ["Each camera calculates the robot center from its own mount values.", "If one camera's values are off by 10 cm, its answer is off by 10 cm.", "The estimator takes turns pulling toward each camera, so the position wobbles.", "Fix: re-measure the mounts, and check each camera's pose on the field view separately."] },
+    { id: "l7", type: "write", q: "We test in the shop with 4 tags taped to the walls. Why can't the Limelight use the official field map there, and what do we do instead?",
+      hint: "The official map says where tags are on a competition field. Are our shop tags in those places?",
+      model: "The official map has each tag's position on a real field. Our shop tags are in different places, so the Limelight would calculate wrong positions from them. We make a custom map with the measured positions of our shop tags and load it on the Limelight." }
+  ]
+},
+{
+  id: "drivetospot", title: "Drive-to-spot in teleop", where: "RobotContainer.java · branch teleop-drive-to-pose",
+  body: `
+<p>Holding the <b>right bumper</b> makes the robot plan a path, right then, from wherever it is to the Square Test start (2, 3) facing 0°, and drive it. Nobody drew that path. PathPlanner's <b>pathfinding</b> works it out, steering around obstacles in <code>navgrid.json</code>.</p>
+<p>It's capped at 1.5 m/s for first tests. And because it's bound with <code>whileTrue</code>, letting go of the bumper stops it and gives the driver control back.</p>`,
+  code: `/* Drive-to-spot target: the Square Test start, (2, 3) m facing 0° (blue side; mirrored on red) */
+private final Pose2d squareStartPose = new Pose2d(2.0, 3.0, Rotation2d.kZero);
+
+// Hold right bumper: PathPlanner plans a path from where we are to the Square Test start
+// and drives it. Let go to stop and take back control.
+joystick.rightBumper().whileTrue(
+    AutoBuilder.pathfindToPoseFlipped(squareStartPose, driveToSpotConstraints)
+);`,
+  tasks: [
+    { id: "t-dts", title: "Drive-to-spot in the sim, both alliances", need: "Laptop, Xbox controller plugged in",
+      steps: ["Start the sim. Drag the Xbox controller onto Joysticks slot 0.", "In the FMS window, set Alliance Station to Blue 1. Click Teleoperated.", "Drive away, then hold the right bumper. Write down where it stops.", "Let go halfway through another try. Does it stop?", "Disable, switch to Red 1, enable Teleoperated, and hold the bumper again. Where does it go now?", "Stop the sim with Shift+F5."],
+      expect: "Blue: ends at (2, 3) facing right. Red: ends near (14.5, 5.1) facing left. Letting go stops it right away." }
+  ],
+  questions: [
+    { id: "d1", type: "mc", q: "Why whileTrue instead of onTrue?",
+      options: ["whileTrue is faster", "With whileTrue, letting go of the button stops the robot; onTrue would keep driving until it got there", "onTrue doesn't work with bumpers", "No difference"], answer: 1,
+      hint: "Read them as English: \"while true\" vs \"on true\". When does each one end?",
+      steps: ["onTrue starts the command when you press, then lets it run until it finishes on its own.", "whileTrue runs it only while the button is held, and cancels it when you let go.", "For a robot driving itself, the driver's thumb becomes the stop button. That's what you want while testing."] },
+    { id: "d2", type: "num", q: "On red, the spot is mirrored. The field is 16.54 m long. Blue spot x = 2.0. What's the red spot's x? (Mirrored x = field length − x)", answer: 14.54, tol: 0.01, unit: "m",
+      hint: "Plug the numbers into the formula given in the question.",
+      steps: ["Mirrored x = field length − x.", "16.54 − 2.0 = 14.54 m.", "That's 2 m from the red wall, just like 2 m from the blue wall."] },
+    { id: "d2b", type: "num", q: "Same idea for y. The field is 8.07 m wide, and blue y = 3.0. Red y = width − y. What is it?", answer: 5.07, tol: 0.01, unit: "m",
+      hint: "Same formula, using the width this time.",
+      steps: ["Red y = 8.07 − 3.0 = 5.07 m.", "So the red spot is about (14.5, 5.1), and it faces 180° (turned around)."] },
+    { id: "d3", type: "mc", q: "In the shop, the robot takes a curvy path to (2, 3) instead of a straight line. Why?",
+      options: ["The path PID is too high", "navgrid.json still has the competition field's obstacles, so it drives around things that aren't in the shop", "The gyro is broken", "Vision is off"], answer: 1,
+      hint: "Pathfinding avoids obstacles. Where does it get its list of obstacles from?",
+      steps: ["Pathfinding reads obstacles from navgrid.json.", "Ours is still the competition field's grid, with field structures marked.", "In the shop those aren't there, but the robot still drives around them.", "Fix (if needed): clear the grid in the PathPlanner app."] },
+    { id: "d4", type: "mc", q: "No AprilTags are in view. Where does the robot actually stop?",
+      options: ["Exactly on the (2, 3) tape mark", "Where it thinks (2, 3) is, based on odometry since its position was last reset, so maybe a bit off", "It won't move", "At (0, 0)"], answer: 1,
+      hint: "How does the robot know where it is when the camera can't help?",
+      steps: ["The robot drives to where its position estimate says (2, 3) is.", "Without tags, that estimate is only odometry, which drifts.", "So it stops wherever odometry thinks (2, 3) is. With tags, vision keeps the estimate honest."] }
+  ]
+},
+{
+  id: "multicam", title: "The multi-camera vision library", where: "frc/lib/vision/ · branch vision-multi-camera", status: "Not merged yet",
+  body: `
+<p>Next season we may run two or more Limelights. The new library on the <code>vision-multi-camera</code> branch handles any number of them. Each camera sends its own estimate, and the pose estimator blends them, weighting each by its standard deviation. We never average cameras ourselves.</p>
+<p>The trust now depends on what the camera sees:</p>
+<p style="font-family:var(--font-mono);font-size:15px">stdDev = 0.1 × distance² ÷ tagCount × cameraScale</p>
+<p>Far tags are trusted much less (the distance is <i>squared</i>), and seeing more tags is trusted more. In ALIGNMENT mode, when the tags are closer than 1.5 m, the result is cut in half.</p>
+<p>It's split so it can be reused every year: <code>frc/lib/vision/</code> never knows about the game, and <code>VisionConstants.java</code> holds this season's camera list and tag IDs.</p>`,
+  code: `// stdDev = kStdDevPerMeterSquared * distance² / tagCount * camera.stdDevScale
+private double xyStdDev(CameraConfig cam, double avgTagDistMeters, int tagCount) {
+    double stdDev = kStdDevPerMeterSquared * avgTagDistMeters * avgTagDistMeters / tagCount
+        * cam.stdDevScale();                                   // kStdDevPerMeterSquared = 0.1
+    if (m_profile == VisionProfile.ALIGNMENT && avgTagDistMeters < kAlignmentCloseRangeMeters) {
+        stdDev *= kAlignmentCloseRangeScale;                    // 1.5 m, 0.5
+    }
+    return stdDev;
+}`,
+  tasks: [
+    { id: "t-branch", title: "Look at the branch (without merging it)", need: "Laptop with the repo",
+      steps: ["In VS Code, click the branch name in the bottom-left corner and pick vision-multi-camera.", "Open src/main/java/frc/lib/vision/ and look at the three files.", "Open VisionConstants.java. Find the commented-out second camera line.", "Switch back to main the same way when you're done."],
+      expect: "Three library files (CameraConfig, VisionProfile, MultiLimelightVision) and one season file (VisionConstants). Adding the back camera is one line." }
+  ],
+  questions: [
+    { id: "m1", type: "num", q: "LOCALIZATION mode, one tag, 3 m away, cameraScale 1.0. What's the x/y standard deviation?", answer: 0.9, tol: 0.01, unit: "m",
+      hint: "Square the distance first, then multiply by 0.1, then divide by the tag count.",
+      steps: ["distance² = 3 × 3 = 9.", "0.1 × 9 = 0.9.", "÷ tagCount (1) = 0.9.", "× cameraScale (1.0) = 0.9 m.", "Compared with the old fixed 0.7 m, this tag is trusted a bit less."] },
+    { id: "m2", type: "num", q: "Same, but the camera sees 2 tags averaging 3 m away. Standard deviation now?", answer: 0.45, tol: 0.01, unit: "m",
+      hint: "You already have 0.1 × 9 from the last question. What changes?",
+      steps: ["0.1 × 3² = 0.9 (same as before).", "Now divide by 2 tags: 0.9 ÷ 2 = 0.45 m.", "Two tags halves it: more tags, more trust."] },
+    { id: "m2b", type: "num", q: "One tag at 1.5 m vs one tag at 3 m. How many times bigger is the far tag's standard deviation?", answer: 4, tol: 0.01, unit: "×",
+      hint: "Work out both standard deviations, then divide the big one by the small one.",
+      steps: ["Near: 0.1 × 1.5² = 0.1 × 2.25 = 0.225 m.", "Far: 0.1 × 3² = 0.9 m.", "0.9 ÷ 0.225 = 4.", "Twice the distance → 4 times the standard deviation. That's what \"squared\" does."] },
+    { id: "m3", type: "num", q: "ALIGNMENT mode, one tag, 1 m away, cameraScale 1.0. Standard deviation?", answer: 0.05, tol: 0.005, unit: "m",
+      hint: "Do the normal formula, then check the if: is it ALIGNMENT and closer than 1.5 m?",
+      steps: ["0.1 × 1² ÷ 1 × 1.0 = 0.1.", "Check the if: ALIGNMENT? yes. 1 m < 1.5 m? yes.", "So multiply by 0.5: 0.1 × 0.5 = 0.05 m.", "Up close while lining up, we trust vision a lot (within about 5 cm)."] },
+    { id: "m4", type: "mc", q: "Why does alignmentCommand() use Commands.startEnd(...)?",
+      options: ["To make it run faster", "So the tag filter is always switched back to LOCALIZATION when the command ends or is interrupted", "Because startEnd is required for vision", "To start the camera"], answer: 1,
+      hint: "startEnd takes two actions. When does the second one run?",
+      steps: ["startEnd(A, B) runs A when the command starts and B when it ends, for any reason.", "A = switch to ALIGNMENT (only look at the target tags).", "B = switch back to LOCALIZATION (look at every tag).", "Even if the driver lets go early, B still runs, so the filter can't get stuck on."] },
+    { id: "m6", type: "write", q: "Next season the game changes. Which file should change, which folder shouldn't, and why is it split that way?",
+      hint: "Which parts depend on the game (tags, cameras), and which are just math and logic?",
+      model: "VisionConstants.java changes: the camera list, mount values and tag IDs for that game. frc/lib/vision/ stays the same, because the loop, the trust math and the profiles don't depend on the game. Splitting them means we reuse tested code every year and only update the settings." }
+  ]
+},
+{
+  id: "workflow", title: "Git, pull requests, and the simulator", where: "GitHub · WPILib Simulate Robot Code",
+  body: `
+<p><b>Git:</b> <code>main</code> is protected. Changes go on their own branch, then a pull request (PR), then one teammate approves before it merges. Auto work branches off <code>autos</code>, one branch per routine, named with a dash: <code>autos-2-piece-center</code>.</p>
+<p><b>Simulator:</b> <i>WPILib: Simulate Robot Code</i> runs our real code on the laptop. The Robot Simulation window often opens behind VS Code. Always stop it with Shift+F5 when you're done. A sim left running holds the network ports, and the next one can't connect properly.</p>
+<div class="tbl"><table><tr><th>Keyboard 0 key</th><th>Acts as</th><th>Does</th></tr>
+<tr><td>W / S</td><td>Left stick up/down</td><td>Drive forward/back</td></tr>
+<tr><td>A / D</td><td>Left stick left/right</td><td>Drive left/right</td></tr>
+<tr><td>Z</td><td>Button 1 (A)</td><td>Brake</td></tr>
+<tr><td>X</td><td>Button 2 (B)</td><td>Point wheels</td></tr></table></div>`,
+  tasks: [
+    { id: "t-git", title: "Make a practice branch", need: "Laptop with the repo",
+      steps: ["Click the branch name in the bottom-left corner of VS Code → Create new branch.", "Name it practice-yourname (with dashes, no spaces).", "Change a comment in any file and save it.", "Open the Source Control panel (Ctrl+Shift+G) and look at your change.", "Undo it (right-click the file → Discard Changes), then switch back to main and delete the practice branch."],
+      expect: "You see your one-line change highlighted in Source Control. Nothing was pushed, so nobody else sees it. This is the same flow we use for real changes, plus a push and a PR at the end." }
+  ],
+  questions: [
+    { id: "w1", type: "mc", q: "Why name the branch autos-2-piece-center instead of autos/2-piece-center?",
+      options: ["Slashes aren't allowed in branch names", "Git can't have both a branch called autos and branches under autos/", "Dashes are faster", "GitHub requires dashes"], answer: 1,
+      hint: "Git stores branch names like file paths. Can you have a file and a folder with the same name in one place?",
+      steps: ["Git saves each branch as a file, and a slash makes a folder.", "autos is already a branch, so it's a file called autos.", "autos/2-piece-center would need a folder called autos, and that name is taken.", "Slashes are fine in general, just not under an existing branch name."] },
+    { id: "w2", type: "mc", q: "You opened a PR into main. What has to happen before it can merge?",
+      options: ["Nothing, just click merge", "One teammate approves it and all conversations are resolved", "A mentor deploys it", "It passes on the real robot first"], answer: 1,
+      hint: "main is protected. What are the protection rules from the reading?",
+      steps: ["main needs a PR, 1 approval, and every review conversation resolved.", "If you push new commits after approval, the old approval is dismissed and you need a new one."] },
+    { id: "w3", type: "mc", q: "The sim log says \"NT server socket error: address already in use\" and the Auto Mode menu is missing. Most likely?",
+      options: ["The code has a bug", "An old simulation is still running in the background", "The Limelight is unplugged", "PathPlanner is out of date"], answer: 1,
+      hint: "\"Address already in use\" means something else already has it. What else could be running?",
+      steps: ["Only one program can hold the NetworkTables network ports.", "\"Already in use\" means another program has them, usually an old sim.", "That happened to us: a sim from days earlier was still running.", "Fix: end the old java.exe in Task Manager, then launch again."] },
+    { id: "w4", type: "text", q: "In the sim with Keyboard 0, which key makes the robot brake (wheels into an X)?", accept: ["z"], placeholder: "one key",
+      hint: "Brake is bound to the A button. Check the key table: which key is button 1 (A)?",
+      steps: ["In RobotContainer, joystick.a() is bound to the brake.", "A is button 1.", "On Keyboard 0, button 1 is Z."] }
+  ]
+}
+];
+
+/* ---------- state (per-viewer, browser only) ---------- */
+const KEY = "cg-auto-lab-v2";
+let state = {};
+try { state = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) { state = {}; }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+
+/* ---------- helpers ---------- */
+const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const KW = /\b(private|final|static|double|int|boolean|var|new|return|if|this|true|false|null)\b/g;
+function hlLine(line) {
+  let code = line, comment = "";
+  const c = [line.indexOf("//"), line.indexOf("/*")].filter(x => x >= 0);
+  if (c.length) { const k = Math.min(...c); code = line.slice(0, k); comment = line.slice(k); }
+  const out = code.split(/("[^"]*")/).map((p, idx) => {
+    if (idx % 2 === 1) return '<span class="st">' + esc(p) + "</span>";
+    return esc(p).replace(KW, '<span class="kw">$1</span>').replace(/\b(\d+(?:\.\d+)?)\b/g, '<span class="nu">$1</span>');
+  }).join("");
+  return out + (comment ? '<span class="cm">' + esc(comment) + "</span>" : "");
+}
+const hl = src => src.split("\n").map(hlLine).join("\n");
+const allQs = () => LESSONS.flatMap(l => l.questions);
+const allTasks = () => LESSONS.flatMap(l => l.tasks || []);
+const graded = q => q.type !== "write";
+const isDone = q => !!(state[q.id] && (graded(q) ? state[q.id].answered : state[q.id].revealed));
+const taskDone = t => t.steps.every((_, i) => state[t.id] && state[t.id][i]);
+const parseNum = s => { const v = parseFloat(String(s).replace(",", ".").replace(/[^\d.\-]/g, "")); return isNaN(v) ? null : v; };
+const fmt = n => String(Math.round(n * 1000) / 1000);
+const norm = s => String(s).trim().toLowerCase().replace(/\s+/g, "");
+
+/* ---------- figures ---------- */
+function squareSvg() {
+  const X = x => 30 + x * 50, Y = y => 360 - y * 50;
+  let g = "";
+  for (let x = 0; x <= 6; x++) g += `<line x1="${X(x)}" y1="${Y(1)}" x2="${X(x)}" y2="${Y(7)}" stroke="var(--line)" stroke-width="1"/><text x="${X(x)}" y="${Y(1) + 16}" text-anchor="middle" font-size="11" fill="var(--muted)">${x}</text>`;
+  for (let y = 1; y <= 7; y++) g += `<line x1="${X(0)}" y1="${Y(y)}" x2="${X(6)}" y2="${Y(y)}" stroke="var(--line)" stroke-width="1"/><text x="${X(0) - 8}" y="${Y(y) + 4}" text-anchor="end" font-size="11" fill="var(--muted)">${y}</text>`;
+  const pts = [[2,3],[4,3],[4,5],[2,5]];
+  const legs = ["1 · Forward", "2 · Left", "3 · Back", "4 · Right"];
+  for (let i = 0; i < 4; i++) {
+    const a = pts[i], b = pts[(i + 1) % 4];
+    g += `<line x1="${X(a[0])}" y1="${Y(a[1])}" x2="${X(b[0])}" y2="${Y(b[1])}" stroke="var(--gold-fill)" stroke-width="4" marker-end="url(#arr)"/>`;
+    const mx = (X(a[0]) + X(b[0])) / 2, my = (Y(a[1]) + Y(b[1])) / 2;
+    const off = [[0, 18], [52, 4], [0, -10], [-52, 4]][i];
+    g += `<text x="${mx + off[0]}" y="${my + off[1]}" text-anchor="middle" font-size="12" fill="var(--ink)">${legs[i]}</text>`;
+  }
+  g += pts.map(p => `<circle cx="${X(p[0])}" cy="${Y(p[1])}" r="5" fill="var(--surface)" stroke="var(--ink)" stroke-width="2"/><text x="${X(p[0]) + (p[0] === 2 ? -10 : 10)}" y="${Y(p[1]) + (p[1] === 3 ? 18 : -10)}" text-anchor="${p[0] === 2 ? "end" : "start"}" font-size="11" fill="var(--muted)">(${p[0]}, ${p[1]})</text>`).join("");
+  g += `<rect x="${X(2) - 12}" y="${Y(3) - 12}" width="24" height="24" rx="4" fill="none" stroke="var(--ink)" stroke-width="2"/><line x1="${X(2)}" y1="${Y(3)}" x2="${X(2) + 18}" y2="${Y(3)}" stroke="var(--ink)" stroke-width="2"/>`;
+  return `<svg viewBox="0 0 360 390" width="360" height="390" role="img" aria-label="Square Test path: (2,3) to (4,3) to (4,5) to (2,5) and back, 2 m per side">
+<defs><marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--gold-fill)"/></marker></defs>
+${g}<text x="${X(3)}" y="${Y(1) + 34}" text-anchor="middle" font-size="11" fill="var(--muted)">x (m) · robot faces 0° (→) the whole time</text></svg>`;
+}
+function mountSvg() {
+  // side view: robot frame, floor, camera with forward/up dimensions
+  return `<svg viewBox="0 0 440 230" width="440" height="230" role="img" aria-label="Side view of a robot: forward is measured from the robot center to the camera lens, up is measured from the floor to the lens, pitch is the camera's upward tilt">
+<line x1="20" y1="190" x2="420" y2="190" stroke="var(--muted)" stroke-width="2"/>
+<text x="24" y="210" font-size="11" fill="var(--muted)">floor</text>
+<rect x="90" y="120" width="240" height="60" rx="6" fill="var(--surface)" stroke="var(--ink)" stroke-width="2"/>
+<circle cx="125" cy="184" r="10" fill="var(--surface)" stroke="var(--ink)" stroke-width="2"/><circle cx="295" cy="184" r="10" fill="var(--surface)" stroke="var(--ink)" stroke-width="2"/>
+<line x1="210" y1="60" x2="210" y2="190" stroke="var(--muted)" stroke-width="1" stroke-dasharray="4 4"/>
+<text x="210" y="52" text-anchor="middle" font-size="11" fill="var(--muted)">robot center</text>
+<line x1="300" y1="120" x2="300" y2="88" stroke="var(--ink)" stroke-width="2"/>
+<g transform="rotate(-20 300 80)"><rect x="288" y="72" width="26" height="16" rx="3" fill="var(--gold-fill)" stroke="var(--ink)" stroke-width="1.5"/><line x1="314" y1="80" x2="370" y2="80" stroke="var(--gold)" stroke-width="1.5" stroke-dasharray="5 4"/></g>
+<text x="372" y="54" font-size="11" fill="var(--gold)">pitch ↑</text>
+<line x1="210" y1="30" x2="300" y2="30" stroke="var(--ink)" stroke-width="1.5" marker-end="url(#a2)" marker-start="url(#a2)"/>
+<text x="255" y="24" text-anchor="middle" font-size="12" fill="var(--ink)">forward</text>
+<line x1="300" y1="30" x2="300" y2="66" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 3"/>
+<line x1="395" y1="190" x2="395" y2="80" stroke="var(--ink)" stroke-width="1.5" marker-end="url(#a2)" marker-start="url(#a2)"/>
+<line x1="318" y1="80" x2="400" y2="80" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 3"/>
+<text x="403" y="140" font-size="12" fill="var(--ink)">up</text>
+<text x="80" y="110" font-size="11" fill="var(--muted)">back</text><text x="330" y="110" font-size="11" fill="var(--muted)">front →</text>
+<defs><marker id="a2" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--ink)"/></marker></defs>
+</svg>`;
+}
+
+/* ---------- render ---------- */
+function renderTask(t) {
+  const el = document.createElement("div");
+  el.className = "task"; el.id = "task-" + t.id;
+  const done = taskDone(t);
+  el.innerHTML = `<h3><span class="tag">Try it</span>${esc(t.title)}</h3><p class="need">You need: ${esc(t.need)}</p>`;
+  const ol = document.createElement("ol"); ol.className = "steps";
+  t.steps.forEach((s, i) => {
+    const li = document.createElement("li");
+    const id = `cb-${t.id}-${i}`;
+    li.innerHTML = `<label for="${id}"><input type="checkbox" id="${id}"><span>${esc(s)}</span></label>`;
+    const cb = li.querySelector("input");
+    cb.checked = !!(state[t.id] && state[t.id][i]);
+    cb.addEventListener("change", () => {
+      state[t.id] = Object.assign({}, state[t.id], { [i]: cb.checked });
+      save();
+      const nowDone = taskDone(t);
+      el.querySelector(".task-done").hidden = !nowDone;
+      updateScore();
+    });
+    ol.appendChild(li);
+  });
+  el.appendChild(ol);
+  const det = document.createElement("details"); det.className = "expect";
+  det.innerHTML = `<summary>What you should see</summary><div>${esc(t.expect)}</div>`;
+  el.appendChild(det);
+  const d = document.createElement("span"); d.className = "task-done"; d.textContent = "Done ✓"; d.hidden = !done;
+  el.appendChild(d);
+  return el;
+}
+
+function solution(ok, lead, q) {
+  const fb = document.createElement("div");
+  fb.className = "fb " + (ok ? "good" : "bad");
+  fb.innerHTML = `<b class="${ok ? "good" : "bad"}">${ok ? "Correct." : "Not quite. " + esc(lead)}</b><span class="sh">How to work it out</span><ol>${q.steps.map(s => `<li>${esc(s)}</li>`).join("")}</ol>`;
+  return fb;
+}
+
+function hintUi(q, body) {
+  if (!q.hint) return;
+  const s = state[q.id] || {};
+  if (graded(q) && s.answered) return;
+  const row = document.createElement("div"); row.className = "row";
+  if (s.hint) {
+    const h = document.createElement("div"); h.className = "hintbox";
+    h.innerHTML = `<b>Hint:</b> ${esc(q.hint)}`;
+    body.appendChild(h);
+    return;
+  }
+  const b = document.createElement("button"); b.type = "button"; b.className = "btn ghost"; b.id = "hint-" + q.id;
+  b.textContent = "Show a hint";
+  b.addEventListener("click", () => { state[q.id] = Object.assign({}, state[q.id], { hint: true }); save(); refresh(q); });
+  row.appendChild(b); body.appendChild(row);
+}
+
+function renderQuestion(q, n) {
+  const el = document.createElement("div");
+  el.className = "q"; el.id = "q-" + q.id;
+  el.dataset.n = n;
+  const tag = q.find ? "Find it in the code" : { mc: "Pick one", num: "Work it out", text: "Work it out", write: "Explain" }[q.type];
+  el.innerHTML = `<div class="q-top"><span class="q-tag${q.find ? " find" : ""}">${n} · ${tag}</span><div class="q-text">${esc(q.q)}</div></div><div class="q-body" style="display:grid;gap:10px"></div>`;
+  const body = el.querySelector(".q-body");
+  const s = state[q.id] || {};
+
+  if (q.type === "mc") {
+    const opts = document.createElement("div"); opts.className = "opts";
+    q.options.forEach((o, i) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "opt"; b.id = `opt-${q.id}-${i}`;
+      b.innerHTML = `<span class="k">${"ABCD"[i]}</span><span>${esc(o)}</span>`;
+      if (s.answered) {
+        b.disabled = true;
+        if (i === q.answer) b.classList.add("is-right");
+        else if (i === s.choice) b.classList.add("is-wrong");
+      }
+      b.addEventListener("click", () => {
+        if ((state[q.id] || {}).answered) return;
+        state[q.id] = Object.assign({}, state[q.id], { answered: true, choice: i, correct: i === q.answer });
+        save(); refresh(q);
+      });
+      opts.appendChild(b);
+    });
+    body.appendChild(opts);
+    hintUi(q, body);
+    if (s.answered) body.appendChild(solution(s.correct, "The answer is " + "ABCD"[q.answer] + ".", q));
+  }
+
+  if (q.type === "num" || q.type === "text") {
+    const row = document.createElement("div"); row.className = "row";
+    row.innerHTML = `<label class="sr" for="in-${q.id}">Your answer</label><input type="text" ${q.type === "num" ? 'inputmode="decimal"' : ""} id="in-${q.id}" autocomplete="off" placeholder="${esc(q.placeholder || "your answer")}">${q.unit ? `<span class="unit">${esc(q.unit)}</span>` : ""}<button class="btn" type="button" id="chk-${q.id}">Check</button>`;
+    body.appendChild(row);
+    const input = row.querySelector("input"), btn = row.querySelector("button");
+    if (s.answered) { input.value = s.value; input.disabled = true; btn.disabled = true; }
+    const check = () => {
+      if ((state[q.id] || {}).answered) return;
+      let ok;
+      if (q.type === "num") {
+        const v = parseNum(input.value);
+        if (v === null) { input.focus(); return; }
+        ok = Math.abs(v - q.answer) <= q.tol;
+      } else {
+        if (!input.value.trim()) { input.focus(); return; }
+        ok = q.accept.some(a => norm(a) === norm(input.value));
+      }
+      state[q.id] = Object.assign({}, state[q.id], { answered: true, value: input.value, correct: ok });
+      save(); refresh(q);
+    };
+    btn.addEventListener("click", check);
+    input.addEventListener("keydown", e => { if (e.key === "Enter") check(); });
+    hintUi(q, body);
+    if (s.answered) {
+      const ans = q.type === "num" ? fmt(q.answer) + (q.unit ? " " + q.unit : "") : q.accept[0];
+      body.appendChild(solution(s.correct, "The answer is " + ans + ".", q));
+    }
+  }
+
+  if (q.type === "write") {
+    const ta = document.createElement("textarea");
+    ta.id = "ta-" + q.id; ta.placeholder = "Type your answer, then compare it with the model answer.";
+    ta.setAttribute("aria-label", "Your answer");
+    ta.value = s.text || "";
+    const row = document.createElement("div"); row.className = "row";
+    const btn = document.createElement("button"); btn.type = "button"; btn.className = "btn"; btn.id = "rev-" + q.id;
+    btn.textContent = "Show model answer";
+    const note = document.createElement("span"); note.className = "hint";
+    const sync = () => { const ok = ta.value.trim().length >= 20; btn.disabled = !ok || !!(state[q.id] || {}).revealed; note.textContent = ok || (state[q.id] || {}).revealed ? "" : "Write at least a sentence first."; };
+    ta.addEventListener("input", () => { state[q.id] = Object.assign({}, state[q.id], { text: ta.value }); save(); sync(); });
+    btn.addEventListener("click", () => { state[q.id] = Object.assign({}, state[q.id], { text: ta.value, revealed: true }); save(); refresh(q); });
+    row.append(btn, note);
+    body.append(ta, row);
+    sync();
+    hintUi(q, body);
+    if (s.revealed) {
+      const fb = document.createElement("div"); fb.className = "fb neutral";
+      fb.innerHTML = `<b class="neutral">Model answer</b><span>${esc(q.model)}</span><span class="hint">Check yours: did it name the same main idea, and give a reason? If not, reread the lab and try saying it out loud to a teammate.</span>`;
+      body.appendChild(fb);
+    }
+  }
+
+  if (s.answered && graded(q)) el.classList.add(s.correct ? "right" : "wrong");
+  return el;
+}
+
+function refresh(q) {
+  const old = document.getElementById("q-" + q.id);
+  const fresh = renderQuestion(q, old.dataset.n);
+  old.replaceWith(fresh);
+  updateScore();
+}
+
+function renderAll() {
+  const host = document.getElementById("lessons"); host.innerHTML = "";
+  const toc = document.getElementById("toc"); toc.innerHTML = "";
+  LESSONS.forEach((l, li) => {
+    const num = String(li + 1).padStart(2, "0");
+    const sec = document.createElement("section");
+    sec.className = "lesson"; sec.id = l.id;
+    const fig = l.figure === true
+      ? `<div class="figure"><div class="figure-scroll">${squareSvg()}</div><span class="cap">Field coordinates in meters. Blue alliance wall is at x = 0.</span></div>`
+      : l.figure === "mount"
+      ? `<div class="figure"><div class="figure-scroll">${mountSvg()}</div><span class="cap">Side view. Forward is measured from the robot center to the lens; up is measured from the floor to the lens.</span></div>`
+      : "";
+    sec.innerHTML = `
+      <div class="lesson-head"><span class="num">${num}</span><h2>${esc(l.title)}${l.status ? `<span class="status">${esc(l.status)}</span>` : ""}</h2><span class="where">${esc(l.where)}</span></div>
+      <div class="prose">${l.body}</div>
+      ${fig}
+      ${l.code ? `<pre><code>${hl(l.code)}</code></pre>` : ""}`;
+    if (l.tasks && l.tasks.length) {
+      const tw = document.createElement("div"); tw.className = "tasks";
+      tw.innerHTML = `<span class="block-label">Hands-on</span>`;
+      l.tasks.forEach(t => tw.appendChild(renderTask(t)));
+      sec.appendChild(tw);
+    }
+    const checks = document.createElement("div"); checks.className = "checks";
+    checks.innerHTML = `<span class="block-label">Check your understanding</span>`;
+    l.questions.forEach((q, qi) => checks.appendChild(renderQuestion(q, `${li + 1}.${qi + 1}`)));
+    sec.appendChild(checks);
+    host.appendChild(sec);
+
+    const item = document.createElement("li");
+    item.innerHTML = `<a href="#${l.id}"><span class="n">${num}</span><span>${esc(l.title)}</span><span class="c" id="toc-${l.id}"></span></a>`;
+    toc.appendChild(item);
+  });
+  updateScore();
+}
+
+function updateScore() {
+  const qs = allQs(), g = qs.filter(graded), tasks = allTasks();
+  const right = g.filter(q => state[q.id] && state[q.id].correct).length;
+  const answered = qs.filter(isDone).length;
+  const tdone = tasks.filter(taskDone).length;
+  document.getElementById("scoreRight").textContent = right;
+  document.getElementById("scoreTotal").textContent = g.length;
+  document.getElementById("scoreSub").textContent = `${answered} of ${qs.length} questions answered`;
+  document.getElementById("taskSub").textContent = `${tdone} of ${tasks.length} hands-on tasks done`;
+  document.getElementById("scoreBar").style.width = (answered / qs.length * 100) + "%";
+
+  const list = document.getElementById("doneList"); list.innerHTML = "";
+  LESSONS.forEach(l => {
+    const done = l.questions.filter(isDone).length;
+    const lg = l.questions.filter(graded);
+    const lr = lg.filter(q => state[q.id] && state[q.id].correct).length;
+    const c = document.getElementById("toc-" + l.id);
+    c.textContent = `${done}/${l.questions.length}`;
+    c.classList.toggle("done", done === l.questions.length);
+    if (done === l.questions.length && lr < lg.length) {
+      const li = document.createElement("li");
+      li.innerHTML = `<a href="#${l.id}">${esc(l.title)}</a>: ${lr} of ${lg.length} right. Reread the worked solutions for the ones you missed.`;
+      list.appendChild(li);
+    }
+  });
+  const text = document.getElementById("doneText");
+  if (answered < qs.length) {
+    text.textContent = `${qs.length - answered} questions to go. Answer every question to see your result here.`;
+  } else {
+    const pct = Math.round(right / g.length * 100);
+    text.textContent = pct >= 85
+      ? `${right} of ${g.length} correct (${pct}%). You know this code well enough to teach it. Pick a lab and walk a teammate through it.`
+      : `${right} of ${g.length} correct (${pct}%). Go back to the labs below, read the worked solutions, then talk through them with a teammate or mentor.`;
+    if (tdone < tasks.length) text.textContent += ` You also have ${tasks.length - tdone} hands-on tasks left.`;
+  }
+}
+
+/* ---------- reset (two-click, no dialogs) ---------- */
+const resetBtn = document.getElementById("resetBtn");
+let armTimer = null;
+resetBtn.addEventListener("click", () => {
+  if (!resetBtn.classList.contains("armed")) {
+    resetBtn.classList.add("armed"); resetBtn.textContent = "Click again to erase everything";
+    armTimer = setTimeout(() => { resetBtn.classList.remove("armed"); resetBtn.textContent = "Start over"; }, 4000);
+    return;
+  }
+  clearTimeout(armTimer);
+  state = {}; save(); renderAll();
+  resetBtn.classList.remove("armed"); resetBtn.textContent = "Start over";
+});
+
+renderAll();
+</script>
+
+</body></html>
