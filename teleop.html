@@ -1,0 +1,652 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>CODE Gold Teleop Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="lab.css">
+</head>
+<body>
+<div class="wrap">
+  <aside class="rail">
+    <div class="brand">
+      <span class="team">FRC 8352 · CODE Gold</span>
+      <span class="name">Teleop Lab</span>
+    </div>
+    <nav class="labnav" aria-label="Labs"><a href="./">Auto Lab</a><a href="teleop.html" aria-current="page">Teleop Lab</a><a href="subsystems.html">Subsystems Lab</a></nav>
+    <div class="score" aria-live="polite">
+      <div class="big"><span id="scoreRight">0</span> <small>/ <span id="scoreTotal">0</span> correct</small></div>
+      <div class="bar"><i id="scoreBar"></i></div>
+      <div class="sub" id="scoreSub">0 of 0 questions answered</div>
+      <div class="sub" id="taskSub">0 of 0 hands-on tasks done</div>
+      <div class="sub" id="simSub">0 of 0 sim challenges done</div>
+    </div>
+    <ul class="toc" id="toc"></ul>
+    <button class="reset" id="resetBtn" type="button">Start over</button>
+  </aside>
+
+  <main>
+    <section class="intro">
+      <span class="eyebrow">2026–27 off-season · robot code</span>
+      <h1>Driving the robot: how teleop works</h1>
+      <p class="lede">Five labs on the code that turns the driver's controller into robot motion. In two of them you edit real Java code from our robot and watch what your change does in a simulator.</p>
+      <div class="legend">
+        <div><b>Change the code</b><span>Edit the Java, press Build &amp; run, and drive. Typos give you real Java error messages, with the line number.</span></div>
+        <div><b>Try it</b><span>Hands-on tasks. Tick each step as you do it. Some need the laptop, the sim or the robot.</span></div>
+        <div><b>Hint first</b><span>Stuck? Open the hint. It shows how to start, not the answer. Hints don't cost points.</span></div>
+        <div><b>Worked solution</b><span>After you answer, you get the steps. Check your reasoning, not just your answer.</span></div>
+      </div>
+    </section>
+    <div class="lessons" id="lessons"></div>
+    <section class="done-card">
+      <h2>Finished?</h2>
+      <p id="doneText">Answer every question to see your result here.</p>
+      <ul id="doneList"></ul>
+    </section>
+  </main>
+</div>
+
+<script src="lab.js"></script>
+<script>
+/* ===================== lessons ===================== */
+const TELEOP_LESSONS = [
+{
+  id: "flow", sims: ["drive"], title: "How teleop driving works", where: "RobotContainer.java · configureBindings()",
+  body: `
+<p>Nothing special "turns on" the drive code when teleop starts. The drivetrain has a <b>default command</b>: a command that runs whenever no other command is using the drivetrain. Ours reads the sticks every 20 ms and turns them into a speed request.</p>
+<p>WPILib's directions: <b>+X is forward</b> (away from the driver), <b>+Y is left</b>, and turning <b>counterclockwise is positive</b>. An Xbox stick reads the other way round: pushing <b>up gives a negative</b> Y, and pushing <b>right gives a positive</b> X. That's why every line has a minus sign.</p>
+<p><code>MaxSpeed</code> is the top speed from Tuner X (5.12 m/s). <code>MaxAngularRate</code> is 0.75 turns per second. The request is <b>field-centric</b> with a <b>10% deadband</b>, and the drive motors run <b>open-loop</b>: the voltage is set from the requested speed, without checking the actual wheel speed.</p>
+<p>The simulator below runs a copy of these lines. Change them, press <b>Build &amp; run</b>, and drive with the on-screen sticks or the keyboard.</p>`,
+  code: `private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // 5.12 m/s
+private double MaxAngularRate = RotationsPerSecond.of(0.75).in(RadiansPerSecond);   // 3/4 of a turn per second
+
+private final SwerveRequest.FieldCentric drive = new SwerveRequest.FieldCentric()
+        .withDeadband(MaxSpeed * 0.1).withRotationalDeadband(MaxAngularRate * 0.1) // Add a 10% deadband
+        .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
+
+drivetrain.setDefaultCommand(
+    // Drivetrain will execute this command periodically
+    drivetrain.applyRequest(() ->
+        drive.withVelocityX(-joystick.getLeftY() * MaxSpeed)       // Drive forward with negative Y (forward)
+            .withVelocityY(-joystick.getLeftX() * MaxSpeed)        // Drive left with negative X (left)
+            .withRotationalRate(-joystick.getRightX() * MaxAngularRate) // Drive counterclockwise with negative X (left)
+    )
+);`,
+  tasks: [
+    { id: "t-xbox", title: "Drive the real code in the simulator", need: "Laptop with WPILib 2026, an Xbox controller",
+      steps: ["Plug in the Xbox controller, then Ctrl+Shift+P → WPILib: Simulate Robot Code → Sim GUI.", "In System Joysticks, drag the controller onto Joysticks slot 0.", "Open NetworkTables → Pose to see the field, then click Teleoperated.", "Push the left stick up. Which way does the robot go on the field view?", "Turn the robot 90° with the right stick, then push the left stick up again.", "Hold A while driving. What happens?", "Stop the sim with Shift+F5."],
+      expect: "Stick up drives away from the blue wall no matter which way the robot faces (field-centric). Holding A sets the wheels in an X and the robot stops and won't move until you let go." }
+  ],
+  questions: [
+    { id: "f1", type: "mc", q: "You push the left stick straight up (away from you). What does joystick.getLeftY() return?",
+      options: ["+1", "−1", "0", "It depends on the alliance"], answer: 1,
+      hint: "Read the lesson: which way round does an Xbox stick read compared with WPILib?",
+      steps: ["Xbox sticks report up as negative Y.", "So pushing all the way up gives −1.", "That's why the code says -joystick.getLeftY(): the minus turns −1 into +1, which is forward in WPILib."] },
+    { id: "f2", type: "num", q: "MaxAngularRate is 0.75 rotations per second. How many radians per second is that? (1 rotation = 2π rad)", answer: 4.712, tol: 0.01, unit: "rad/s",
+      hint: "Multiply rotations by 2π.",
+      steps: ["1 rotation = 2π ≈ 6.283 rad.", "0.75 × 6.283 = 4.712 rad/s.", "WPILib uses radians, so the code converts with RotationsPerSecond.of(0.75).in(RadiansPerSecond)."] },
+    { id: "f3", type: "num", q: "The deadband is MaxSpeed × 0.1. MaxSpeed is 5.12 m/s. What's the deadband?", answer: 0.512, tol: 0.002, unit: "m/s",
+      hint: "10% of the top speed.",
+      steps: ["5.12 × 0.1 = 0.512 m/s.", "Any requested speed slower than that is treated as zero, so a stick that rests slightly off-center doesn't creep."] },
+    { id: "f4", type: "mc", q: "Someone deletes the setDefaultCommand(...) line. What happens in teleop?",
+      options: ["The robot drives normally", "The sticks do nothing, but buttons like A still work", "The robot code crashes", "The robot drives at full speed"], answer: 1,
+      hint: "What is the only thing that reads the sticks?",
+      steps: ["The default command is the only code that reads the sticks and drives.", "Without it, nothing tells the drivetrain to move when no button is pressed.", "Button commands like A (brake) are separate bindings, so they still work."] },
+    { id: "f5", type: "mc", q: "The drive request uses OpenLoopVoltage. What does that mean?",
+      options: ["Motor voltage is set from the requested speed, without checking the actual wheel speed", "The motors spin at exactly the requested speed using a speed sensor", "The robot drives without a battery", "Only the steering motors are used"], answer: 0,
+      hint: "\"Open loop\" means there's no feedback loop checking the result.",
+      steps: ["Open loop: send a voltage you expect will give that speed, and don't check.", "Closed loop would measure the wheel speed and correct it (like PID).", "For a human driver, open loop feels smooth and the driver is the feedback."] }
+  ]
+},
+{
+  id: "shaping", title: "Deadband and input shaping", where: "Ideas to try in the simulator in Lab 1",
+  body: `
+<p>A <b>deadband</b> ignores tiny stick movements, so a stick that doesn't rest exactly at zero won't make the robot creep.</p>
+<p><b>Squared inputs</b> give the driver finer control: half stick gives a quarter of the speed, and full stick still gives full speed. Use <code>x * Math.abs(x)</code> instead of <code>x * x</code>: <code>x * x</code> is always positive, so pulling back would drive forward.</p>
+<p><b>Slow mode</b> scales everything down while a trigger is held. A Java <b>ternary</b> picks one value or another: <code>condition ? valueIfTrue : valueIfFalse</code>.</p>
+<p><b>A Java gotcha:</b> dividing two whole numbers (<code>int</code>s) throws away the remainder. <code>3 / 4</code> is <code>0</code>, not 0.75. Write <code>3.0 / 4</code> or <code>0.75</code> instead.</p>
+<p>Try each of these in the simulator in Lab 1. The challenges there check them for you.</p>`,
+  code: `double x = -joystick.getLeftY();                                    // -1 .. 1
+double shaped = x * Math.abs(x);                                     // squared, keeps the sign
+double scale = joystick.getRightTriggerAxis() > 0.5 ? 0.3 : 1.0;     // slow mode
+double vx = shaped * MaxSpeed * scale;`,
+  questions: [
+    { id: "sh1", type: "num", q: "Squared inputs, MaxSpeed 5.12 m/s. The driver pushes the stick halfway (x = 0.5). What speed is requested?", answer: 1.28, tol: 0.01, unit: "m/s",
+      hint: "First work out shaped = x × |x|, then multiply by MaxSpeed.",
+      steps: ["shaped = 0.5 × |0.5| = 0.25.", "0.25 × 5.12 = 1.28 m/s.", "Without shaping it would be 2.56 m/s, so the driver gets finer control near the middle."] },
+    { id: "sh2", type: "mc", q: "Why x * Math.abs(x) instead of x * x?",
+      options: ["It's faster", "x * x is always positive, so pulling the stick back would still drive forward", "Math.abs rounds the number", "There's no difference"], answer: 1,
+      hint: "Try x = −0.5 in both.",
+      steps: ["x * x with x = −0.5 gives +0.25: forward, even though the stick is pulled back.", "x * Math.abs(x) gives −0.5 × 0.5 = −0.25: backward, like it should."] },
+    { id: "sh3", type: "mc", q: "The deadband is 0.512 m/s. The stick rests at 0.05 instead of 0, which asks for 0.05 × 5.12 = 0.256 m/s. What does the robot do?",
+      options: ["Creeps forward slowly", "Stays still", "Drives at 0.512 m/s", "Turns in place"], answer: 1,
+      hint: "Compare the requested speed with the deadband.",
+      steps: ["0.256 m/s is less than the 0.512 m/s deadband.", "Anything under the deadband is treated as zero.", "So the robot stays still. That's the whole point of a deadband."] },
+    { id: "sh4", type: "num", q: "In Java, what is the value of 3 / 4?", answer: 0, tol: 0.001, unit: "",
+      hint: "Both numbers are whole numbers (ints).",
+      steps: ["3 and 4 are both ints, so Java does integer division.", "Integer division keeps only the whole part: 0.75 → 0.", "So 3 / 4 is 0. In our drive code, MaxAngularRate = 3 / 4 * 2 * Math.PI would be 0 and the robot couldn't turn."] },
+    { id: "sh5", type: "num", q: "And 3.0 / 4?", answer: 0.75, tol: 0.001, unit: "",
+      hint: "One of the numbers has a decimal point now.",
+      steps: ["3.0 is a double, so Java does normal division.", "3.0 / 4 = 0.75."] },
+    { id: "sh6", type: "num", q: "Slow mode: scale = trigger > 0.5 ? 0.3 : 1.0. The trigger is pressed to 0.8 and the stick is full forward. What speed is requested? (MaxSpeed 5.12, no squaring)", answer: 1.536, tol: 0.005, unit: "m/s",
+      hint: "Is 0.8 greater than 0.5? Pick the value, then multiply.",
+      steps: ["0.8 > 0.5 is true, so scale = 0.3.", "1 × 5.12 × 0.3 = 1.536 m/s."] }
+  ]
+},
+{
+  id: "centric", title: "Field-centric, robot-centric and resetting the heading", where: "RobotContainer.java · CommandSwerveDrivetrain.periodic()",
+  body: `
+<p><b>Field-centric</b> (our setting): pushing the stick up always drives <i>away from the driver</i>, whichever way the robot is facing. It uses the Pigeon gyro to know which way the robot points.</p>
+<p><b>Robot-centric</b>: pushing up drives the way the robot's <i>front</i> points. If the robot faces you, pushing up drives it toward you.</p>
+<p>The <b>left bumper</b> runs <code>seedFieldCentric</code>: "whichever way the robot faces right now becomes forward." Point the robot straight away from you before you press it. If the gyro drifts, or the robot gets turned while disabled, press it again.</p>
+<p>On the <b>red alliance</b>, the driver stands at the other end of the field. <code>CommandSwerveDrivetrain.periodic()</code> turns "forward" around by 180° for red, so stick up still means "away from me." It only changes this while the robot is disabled, so driving never flips in the middle of a match.</p>`,
+  code: `// Reset the field-centric heading on left bumper press.
+joystick.leftBumper().onTrue(drivetrain.runOnce(drivetrain::seedFieldCentric));
+
+// In CommandSwerveDrivetrain.periodic():
+setOperatorPerspectiveForward(
+    allianceColor == Alliance.Red
+        ? kRedAlliancePerspectiveRotation   // 180°
+        : kBlueAlliancePerspectiveRotation  // 0°
+);`,
+  questions: [
+    { id: "c1", type: "mc", q: "Field-centric. The robot is turned 90° to the left. You push the left stick up. Which way does it move?",
+      options: ["Away from you (sideways for the robot)", "To your left (the way its front points)", "Toward you", "It turns instead"], answer: 0,
+      hint: "Field-centric ignores which way the robot faces.",
+      steps: ["Field-centric means \"up = away from the driver\".", "The robot's heading doesn't matter, so it moves away from you.", "To do that it drives sideways relative to itself. Swerve can do that."] },
+    { id: "c2", type: "mc", q: "Same thing, but robot-centric. Which way does it move?",
+      options: ["Away from you", "To your left, the way its front points", "Toward you", "It doesn't move"], answer: 1,
+      hint: "Robot-centric: up = the robot's front.",
+      steps: ["Robot-centric means up drives toward the robot's front.", "The front points to your left, so the robot drives to your left.", "Try it in Lab 1's simulator with fieldCentric = false."] },
+    { id: "c3", type: "mc", q: "When should the driver press the left bumper (reset heading)?",
+      options: ["Whenever the robot is moving fast", "When the robot is facing straight away from the driver", "When the robot faces the driver", "Only on the red alliance"], answer: 1,
+      hint: "Reset heading means \"the way I face right now is forward\".",
+      steps: ["seedFieldCentric makes the current heading the new \"forward\".", "Forward should mean away from the driver.", "So point the robot away from you first, then press it."] },
+    { id: "c4", type: "mc", q: "A driver presses the left bumper while the robot is facing them. Now what does stick up do?",
+      options: ["Drives away from the driver, like normal", "Drives toward the driver", "Nothing", "Spins the robot"], answer: 1,
+      hint: "The robot's facing direction just became \"forward\". Which way was it facing?",
+      steps: ["The robot faced the driver when forward was reset.", "So \"forward\" now points at the driver.", "Stick up drives toward the driver: backwards from what they expect. Fix: turn the robot away and press it again."] },
+    { id: "c5", type: "mc", q: "Why does the code turn \"forward\" around by 180° on red?",
+      options: ["Red robots drive backwards", "The red driver stands at the other end, so \"away from me\" is the opposite direction on the field", "To make autos work", "The gyro is upside down on red"], answer: 1,
+      hint: "Where does each alliance's driver stand?",
+      steps: ["Field directions are measured from the blue wall.", "The red driver stands at the red wall, facing the other way.", "Rotating forward by 180° keeps \"stick up = away from me\" for them."] },
+    { id: "c6", type: "write", q: "Why do most teams drive field-centric in matches?",
+      hint: "Think about a driver watching a robot that's spinning while it moves.",
+      model: "The driver only has to think about where they want the robot to go on the field, not which way the robot is facing. Stick up always moves away from them, even while the robot spins, so swerve can drive and turn at the same time without confusing the driver." }
+  ]
+},
+{
+  id: "bindings", sims: ["bindings"], title: "Buttons and commands", where: "RobotContainer.java · configureBindings()",
+  body: `
+<p>A button binding says "when this happens with this button, run that command." The kind of binding decides when the command starts and stops:</p>
+<div class="tbl"><table>
+<tr><th>Binding</th><th>Starts</th><th>Stops</th></tr>
+<tr><td><code>onTrue</code></td><td>When pressed</td><td>When the command finishes by itself</td></tr>
+<tr><td><code>whileTrue</code></td><td>When pressed</td><td>When released (or it finishes)</td></tr>
+<tr><td><code>toggleOnTrue</code></td><td>First press</td><td>Next press</td></tr>
+<tr><td><code>onFalse</code></td><td>When released</td><td>When it finishes by itself</td></tr>
+</table></div>
+<p>Commands <b>require</b> the subsystems they use. Only one command can use a subsystem at a time, so starting a new drivetrain command <b>interrupts</b> the one that's running. When nothing is using the drivetrain, the default command (joystick driving) comes back.</p>
+<p><code>.withTimeout(seconds)</code> makes any command stop after that long. <code>.and(...)</code> makes a binding that needs two buttons at once, which is how our SysId combos work.</p>`,
+  code: `joystick.a().whileTrue(drivetrain.applyRequest(() -> brake));
+joystick.b().whileTrue(drivetrain.applyRequest(() ->
+    point.withModuleDirection(new Rotation2d(joystick.getLeftY(), -joystick.getLeftX()))
+));
+
+// Run SysId routines when holding back/start and X/Y.
+joystick.back().and(joystick.y()).whileTrue(drivetrain.sysIdDynamic(Direction.kForward));
+joystick.start().and(joystick.x()).whileTrue(drivetrain.sysIdQuasistatic(Direction.kReverse));
+
+joystick.leftBumper().onTrue(drivetrain.runOnce(drivetrain::seedFieldCentric));
+joystick.rightBumper().whileTrue(AutoBuilder.pathfindToPoseFlipped(squareStartPose, driveToSpotConstraints));`,
+  questions: [
+    { id: "b1", type: "mc", q: "joystick.back().and(joystick.y()).whileTrue(...). When does the command run?",
+      options: ["When either button is held", "Only while both Back and Y are held", "When Back is tapped, then Y", "Once, when Y is released"], answer: 1,
+      hint: ".and(...) combines two buttons.",
+      steps: [".and makes a trigger that's true only when both are true.", "whileTrue runs the command while that combined trigger is true.", "Let go of either one and it stops. That makes it hard to start SysId by accident."] },
+    { id: "b2", type: "mc", q: "The driver is holding A (brake). Then they press the right bumper (drive-to-spot). What happens to the brake?",
+      options: ["Both run together", "The brake is interrupted, because both commands need the drivetrain", "Drive-to-spot waits until A is released", "The robot code crashes"], answer: 1,
+      hint: "What does each command require?",
+      steps: ["Both commands require the drivetrain.", "Only one command can use a subsystem at a time.", "The newest one wins, so the brake is interrupted and drive-to-spot runs. Try it in the simulator above."] },
+    { id: "b3", type: "mc", q: "Drive-to-spot finishes while the driver is still holding A. Does the brake come back?",
+      options: ["Yes, A is still held", "No: whileTrue only starts the command when the button is first pressed, so joystick driving comes back", "Yes, after 1 second", "The robot stops forever"], answer: 1,
+      hint: "whileTrue starts the command at one moment. Which moment?",
+      steps: ["whileTrue starts the command when the button goes from not pressed to pressed.", "Holding A doesn't start it again.", "With nothing on the drivetrain, the default command (joystick driving) runs. Press A again to brake."] },
+    { id: "b4", type: "mc", q: "The left bumper uses onTrue with runOnce. What would change with whileTrue instead?",
+      options: ["Nothing you'd notice: runOnce finishes right away either way", "It would reset the heading every 20 ms while held", "It would never run", "It would reset the heading when released"], answer: 0,
+      hint: "How long does a runOnce command run?",
+      steps: ["runOnce does its job once and finishes right away.", "whileTrue would start it on the press too, and stopping it on release does nothing because it already finished.", "onTrue just says what we mean: once per press."] },
+    { id: "b5", type: "write", q: "What does it mean for a command to \"require\" a subsystem, and why does WPILib have that rule?",
+      hint: "Think about two commands telling the same motors to do different things.",
+      model: "A command requires the subsystems it controls. Only one command can use a subsystem at a time, so if a new command needs the drivetrain, the old one is stopped. Without this rule, two commands could send the same motors different orders every 20 ms and fight each other." }
+  ]
+},
+{
+  id: "practice", title: "Driving safely and driver practice", where: "Driver Station · shop floor",
+  body: `
+<p>On the Driver Station, <b>Enter disables</b> the robot and the <b>space bar is the emergency stop</b>. After an emergency stop, the robot has to be rebooted before it can be enabled again. Everyone near the robot should know both keys.</p>
+<p>While disabled, our code runs an <b>idle</b> request so the motors go to their neutral mode. In teleop, vision is turned back on automatically, even if an auto turned it off. Drive-to-spot only runs while the right bumper is held: letting go is the stop button.</p>
+<p>New drivers should start slow. For practice, a mentor can lower the speed in code (for example <code>MaxSpeed = 0.5 * ...</code>). That's a real code change, so it goes on a branch with a PR, and gets changed back before competition.</p>`,
+  code: `// Idle while the robot is disabled. This ensures the configured
+// neutral mode is applied to the drive motors while disabled.
+final var idle = new SwerveRequest.Idle();
+RobotModeTriggers.disabled().whileTrue(
+    drivetrain.applyRequest(() -> idle).ignoringDisable(true)
+);
+
+// An auto may have turned vision off; always drive teleop with vision on
+RobotModeTriggers.teleop().onTrue(vision.setEnabledCommand(true));`,
+  tasks: [
+    { id: "t-drill1", title: "Drill 1: the cone weave", need: "Robot, 5 cones in a straight line 1.5 m apart, a mentor at the Driver Station",
+      steps: ["Reset heading with the robot facing away from you (left bumper).", "Drive the weave through all 5 cones without turning the robot (field-centric only).", "Time it. Do it 3 times.", "Now do it while slowly spinning the robot the whole time.", "Write down your best time each way."],
+      expect: "Field-centric lets you weave without thinking about the robot's facing. Spinning makes it harder at first, and it's a skill worth practicing because swerve robots often drive and turn at once." },
+    { id: "t-drill2", title: "Drill 2: heading reset", need: "Robot, a mentor at the Driver Station",
+      steps: ["While disabled, a mentor turns the robot 90° by hand.", "Enable and push the stick up. Note which way it goes.", "Point the robot away from you and press the left bumper.", "Push the stick up again."],
+      expect: "Before the reset, stick up drives off at an angle because the gyro thinks the robot still faces the old way. After the reset, stick up drives away from you again." },
+    { id: "t-drill3", title: "Drill 3: stopping", need: "Robot, a clear area, a mentor at the Driver Station",
+      steps: ["Drive forward at half speed, then let go of the stick. Measure how far the robot coasts.", "Do it again, but hold A (brake) as you let go. Measure again.", "Practice the Enter (disable) key with the robot stopped, so it becomes a habit."],
+      expect: "Holding A stops the robot much faster, because the wheels lock in an X. Disabling with Enter should be automatic for every driver and mentor." }
+  ],
+  questions: [
+    { id: "p1", type: "mc", q: "Something goes wrong and the robot is about to hit someone. Which Driver Station key stops it fastest and can't be undone without a reboot?",
+      options: ["Enter", "Space bar", "Escape", "The left bumper"], answer: 1,
+      hint: "One key disables, one is the emergency stop.",
+      steps: ["Space bar = emergency stop. Everything stops right away.", "After an emergency stop, the robot must be rebooted before it can be enabled again.", "Enter disables, which is also quick, and you can re-enable after."] },
+    { id: "p2", type: "mc", q: "What does RobotModeTriggers.disabled().whileTrue(... idle ...) do?",
+      options: ["Drives slowly while disabled", "Sends the motors an idle request while disabled, so they go to their neutral mode (brake or coast)", "Turns the robot off", "Disables vision"], answer: 1,
+      hint: "Read the comment above it in the code.",
+      steps: ["While disabled is true, it runs an idle request on the drivetrain.", "Idle puts the motors in their configured neutral mode.", "ignoringDisable(true) lets this one command run even though the robot is disabled."] },
+    { id: "p3", type: "mc", q: "A mentor lowers MaxSpeed for driver practice. What's the right way to handle that change?",
+      options: ["Change it on main and leave it", "Put it on a branch with a PR, and change it back before competition", "Change it on the robot laptop without committing", "Ask the driver to just push the stick less"], answer: 1,
+      hint: "Remember the git rules from the Auto Lab.",
+      steps: ["Every code change goes on a branch and gets a PR, so the team can see it.", "A practice speed limit is temporary, so it must be undone before competition.", "Uncommitted changes on one laptop get lost or forgotten."] }
+  ]
+}
+];
+
+/* ===================== simulation challenges ===================== */
+const TELEOP_CHALLENGES = {
+  drive: [
+    ["d-reverse", "Delete the minus sign in front of joystick.getLeftY(). Build, then push the stick up. Which way does the robot go?"],
+    ["d-half", "Make the robot's top speed half of what it is now (forward and sideways)."],
+    ["d-square", "Squared inputs: make half stick give a quarter of the speed and full stick give full speed, keeping the sign."],
+    ["d-slow", "Slow mode: while the right trigger is pressed past halfway, drive at 30% speed. (Hint: a ternary.)"],
+    ["d-int", "Java gotcha: change 0.75 to 3 / 4 in MaxAngularRate. Build, then try to turn. Why can't you?"],
+    ["d-robot", "Set fieldCentric to false. Turn the robot 90°, then push the stick up. What changed?"],
+    ["d-reset", "Turn the robot, then press Reset heading (LB). Now which way does stick-up drive?"]
+  ],
+  bindings: [
+    ["b-interrupt", "Hold A (brake), then press RB (drive to spot). What happened to the brake?"],
+    ["b-ontrue", "Change B from whileTrue to onTrue. Build, then tap B. How long does Point wheels keep running?"],
+    ["b-timeout", "Make one tap of B point the wheels for exactly 1 second. (Hint: .withTimeout(1))"],
+    ["b-toggle", "Make Y turn the brake on with one press and off with the next."],
+    ["b-together", "Bind X to rumble while held. Hold X and A together. Why can both run at once?"]
+  ]
+};
+
+/* ===================== simulation 1: drive code ===================== */
+const DRIVE_CODE = `// This runs every 20 ms while the robot is in teleop.
+// joystick.getLeftY() is -1 when the stick is pushed UP (away from you).
+double MaxSpeed = 5.12;                       // m/s (kSpeedAt12Volts)
+double MaxAngularRate = 0.75 * 2 * Math.PI;   // rad/s: 3/4 of a turn per second
+double deadband = MaxSpeed * 0.1;             // ignore speeds slower than this
+double rotDeadband = MaxAngularRate * 0.1;
+boolean fieldCentric = true;
+
+double vx = -joystick.getLeftY() * MaxSpeed;           // + = forward
+double vy = -joystick.getLeftX() * MaxSpeed;           // + = left
+double omega = -joystick.getRightX() * MaxAngularRate; // + = counterclockwise
+`;
+
+function xboxSticks(i) {
+  const f = k => JavaMini.nm(0, () => i[k]);
+  return JavaMini.obj("CommandXboxController", {}, {
+    getLeftX: f("lx"), getLeftY: f("ly"), getRightX: f("rx"), getRightY: f("ry"),
+    getRightTriggerAxis: f("rt"), getLeftTriggerAxis: f("lt")
+  });
+}
+const driveGlobals = i => Object.assign({ joystick: xboxSticks(i) }, JavaMini.std);
+function driveEval(ast, i) {
+  return JavaMini.run(ast, { globals: driveGlobals(Object.assign({ lx: 0, ly: 0, rx: 0, ry: 0, rt: 0, lt: 0 }, i)) });
+}
+const near = (a, b, tol) => typeof a === "number" && Math.abs(a - b) <= tol;
+
+function simDrive(host) {
+  const inp = { lx: 0, ly: 0, rx: 0, ry: 0, rt: 0, lt: 0 };
+  const pose = { x: 1.6, y: 0, th: 0 }, vel = { x: 0, y: 0, w: 0 };
+  let seed = 0, trail = [], out = { vx: 0, vy: 0, omega: 0, fieldCentric: true }, tick = 0;
+  const S = buildCodeSim(host, {
+    id: "drive", title: "Our drive code", focusable: true,
+    intro: "These lines are a copy of how RobotContainer turns the sticks into speeds. The simulator needs doubles named vx, vy and omega; it also reads deadband, rotDeadband and fieldCentric if you keep them. Methods you can use: joystick.getLeftX(), getLeftY(), getRightX(), getRightY(), getRightTriggerAxis(), and Math, like Math.abs(x).",
+    aria: "Top view of the shop floor with the robot, its recent path, and the driver at the bottom",
+    code: DRIVE_CODE,
+    check(ast) {
+      try {
+        const v = driveEval(ast, {});
+        for (const k of ["vx", "vy", "omega"]) if (typeof v[k] !== "number") return { line: 0, message: `the simulator needs a double named ${k} (it's how fast to drive)` };
+        if ("fieldCentric" in v && typeof v.fieldCentric !== "boolean") return { line: 0, message: "fieldCentric must be a boolean (true or false)" };
+        return null;
+      } catch (e) { return { line: e.line, message: e.message }; }
+    },
+    onBuilt(ast) {
+      const f = i => { try { return driveEval(ast, i); } catch (e) { return {}; } };
+      if (f({ ly: -1 }).vx < -0.01) S.complete("d-reverse");
+      if (near(f({ ly: -1 }).vx, 2.56, 0.02) && near(f({ lx: -1 }).vy, 2.56, 0.02)) S.complete("d-half");
+      if (near(f({ ly: -0.5 }).vx, 1.28, 0.03) && near(f({ ly: -1 }).vx, 5.12, 0.03) && near(f({ ly: 0.5 }).vx, -1.28, 0.03)) S.complete("d-square");
+      if (near(f({ ly: -1, rt: 1 }).vx, 1.536, 0.03) && near(f({ ly: -1, rt: 0 }).vx, 5.12, 0.03)) S.complete("d-slow");
+      if (f({}).MaxAngularRate === 0) S.complete("d-int");
+      if (f({}).fieldCentric === false) S.complete("d-robot");
+    }
+  });
+
+  // Controls: two sticks, trigger, buttons, keyboard
+  const pads = document.createElement("div"); pads.className = "pad-row";
+  const stickL = makeStick(pads, "Left stick: drive", "stick-l");
+  const stickR = makeStick(pads, "Right stick: turn", "stick-r");
+  const side = document.createElement("div"); side.style.display = "grid"; side.style.gap = "10px"; side.style.minWidth = "180px";
+  side.innerHTML = `<div class="ctl"><label for="rt-drive"><span>Right trigger</span><output id="rt-drive-out">0.00</output></label><input type="range" id="rt-drive" min="0" max="1" step="0.05" value="0"></div>`;
+  const resetBtn = document.createElement("button"); resetBtn.type = "button"; resetBtn.className = "btn ghost"; resetBtn.id = "drive-reset-heading"; resetBtn.textContent = "Reset heading (LB)";
+  const backBtn = document.createElement("button"); backBtn.type = "button"; backBtn.className = "btn ghost"; backBtn.id = "drive-put-back"; backBtn.textContent = "Put the robot back";
+  side.append(resetBtn, backBtn); pads.appendChild(side);
+  S.extra.appendChild(pads);
+  const keysP = document.createElement("p"); keysP.className = "keys";
+  keysP.innerHTML = `Keyboard (click the field first): <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> left stick · <kbd>Q</kbd><kbd>E</kbd> turn · hold <kbd>T</kbd> for the trigger · <kbd>R</kbd> reset heading`;
+  S.extra.appendChild(keysP);
+  const rt = side.querySelector("#rt-drive"), rtOut = side.querySelector("#rt-drive-out");
+  rt.addEventListener("input", () => { rtOut.textContent = (+rt.value).toFixed(2); });
+  const keys = {};
+  S.canvas.addEventListener("keydown", e => { const k = e.key.toLowerCase(); if ("wasdqet".includes(k) && k.length === 1) { e.preventDefault(); keys[k] = true; } if (k === "r") doReset(); });
+  S.canvas.addEventListener("keyup", e => { keys[e.key.toLowerCase()] = false; });
+  S.canvas.addEventListener("blur", () => { for (const k in keys) keys[k] = false; });
+  S.canvas.addEventListener("pointerdown", () => S.canvas.focus());
+  const wrapAng = a => Math.atan2(Math.sin(a), Math.cos(a));
+  function doReset() {
+    if (Math.abs(wrapAng(pose.th - seed)) > 20 * Math.PI / 180) S.complete("d-reset");
+    seed = pose.th;
+  }
+  resetBtn.addEventListener("click", doReset);
+  backBtn.addEventListener("click", () => { pose.x = 1.6; pose.y = 0; pose.th = 0; vel.x = vel.y = vel.w = 0; seed = 0; trail = []; });
+
+  const AREA_X = 7, AREA_Y = 4.5, HALF = 0.42;
+  function step() {
+    const kx = (keys.d ? 1 : 0) - (keys.a ? 1 : 0), ky = (keys.s ? 1 : 0) - (keys.w ? 1 : 0), kr = (keys.e ? 1 : 0) - (keys.q ? 1 : 0);
+    inp.lx = stickL.x || kx; inp.ly = stickL.y || ky; inp.rx = stickR.x || kr; inp.ry = stickR.y;
+    inp.rt = keys.t ? 1 : +rt.value;
+    let vx = 0, vy = 0, om = 0, fc = true, db = 0, rdb = 0;
+    const prog = S.program();
+    if (prog) {
+      try {
+        const v = driveEval(prog, inp);
+        vx = +v.vx || 0; vy = +v.vy || 0; om = +v.omega || 0;
+        if (typeof v.fieldCentric === "boolean") fc = v.fieldCentric;
+        if (typeof v.deadband === "number") db = v.deadband;
+        if (typeof v.rotDeadband === "number") rdb = v.rotDeadband;
+      } catch (e) { S.runtimeError(e); }
+    }
+    if (Math.hypot(vx, vy) < db) { vx = 0; vy = 0; }
+    if (Math.abs(om) < rdb) om = 0;
+    out = { vx, vy, omega: om, fieldCentric: fc };
+    const a = fc ? seed : pose.th;
+    const tx = vx * Math.cos(a) - vy * Math.sin(a), ty = vx * Math.sin(a) + vy * Math.cos(a);
+    const dvx = tx - vel.x, dvy = ty - vel.y, dv = Math.hypot(dvx, dvy), maxDv = 12 * 0.02;
+    if (dv > maxDv) { vel.x += dvx / dv * maxDv; vel.y += dvy / dv * maxDv; } else { vel.x = tx; vel.y = ty; }
+    vel.w += Math.max(-30 * 0.02, Math.min(30 * 0.02, om - vel.w));
+    pose.x += vel.x * 0.02; pose.y += vel.y * 0.02; pose.th += vel.w * 0.02;
+    if (pose.x < HALF) { pose.x = HALF; vel.x = Math.max(0, vel.x); }
+    if (pose.x > AREA_X - HALF) { pose.x = AREA_X - HALF; vel.x = Math.min(0, vel.x); }
+    if (pose.y < -AREA_Y + HALF) { pose.y = -AREA_Y + HALF; vel.y = Math.max(0, vel.y); }
+    if (pose.y > AREA_Y - HALF) { pose.y = AREA_Y - HALF; vel.y = Math.min(0, vel.y); }
+    if (++tick % 3 === 0) { trail.push([pose.x, pose.y]); if (trail.length > 120) trail.shift(); }
+  }
+  function draw() {
+    const { w, h, ctx } = fit(S.canvas, 360);
+    const ink = css("ink"), muted = css("muted"), lineC = css("line"), gold = css("gold-fill"), blue = css("blue");
+    const sc = Math.min((w - 24) / (2 * AREA_Y), (h - 44) / AREA_X), cx = w / 2, top = 12;
+    const sx = y => cx - y * sc, sy = x => top + (AREA_X - x) * sc;
+    ctx.strokeStyle = lineC; ctx.lineWidth = 1;
+    for (let gx = 0; gx <= AREA_X; gx++) ln(ctx, sx(-AREA_Y), sy(gx), sx(AREA_Y), sy(gx));
+    for (let gy = -4; gy <= 4; gy++) ln(ctx, sx(gy), sy(0), sx(gy), sy(AREA_X));
+    ctx.strokeStyle = ink; ctx.lineWidth = 2; ctx.strokeRect(sx(AREA_Y), sy(AREA_X), 2 * AREA_Y * sc, AREA_X * sc);
+    ctx.lineWidth = 5; ln(ctx, sx(AREA_Y), sy(0), sx(-AREA_Y), sy(0));
+    txt(ctx, "you (the driver) · 1 m grid", cx, sy(0) + 16, muted, "center");
+    if (trail.length > 1) {
+      ctx.strokeStyle = gold; ctx.globalAlpha = 0.5; ctx.lineWidth = 3; ctx.beginPath();
+      trail.forEach((p, i) => i ? ctx.lineTo(sx(p[1]), sy(p[0])) : ctx.moveTo(sx(p[1]), sy(p[0]))); ctx.stroke(); ctx.globalAlpha = 1;
+    }
+    // where "stick up" will drive right now
+    const fa = out.fieldCentric ? seed : pose.th, L = 1.1;
+    ctx.setLineDash([5, 4]); ctx.strokeStyle = blue; ctx.lineWidth = 2;
+    const ex = pose.x + L * Math.cos(fa), ey = pose.y + L * Math.sin(fa);
+    ln(ctx, sx(pose.y), sy(pose.x), sx(ey), sy(ex)); ctx.setLineDash([]);
+    txt(ctx, "stick up", sx(ey) + 6, sy(ex), blue);
+    ctx.save(); ctx.translate(sx(pose.y), sy(pose.x)); ctx.rotate(-pose.th);
+    const s = 0.84 * sc;
+    ctx.fillStyle = css("surface"); ctx.fillRect(-s / 2, -s / 2, s, s);
+    ctx.strokeStyle = ink; ctx.lineWidth = 2; ctx.strokeRect(-s / 2, -s / 2, s, s);
+    ctx.fillStyle = gold; ctx.fillRect(-s / 2, -s / 2, s, Math.max(4, s * 0.16));
+    ctx.fillStyle = ink; ctx.beginPath(); ctx.moveTo(0, -s * 0.32); ctx.lineTo(-s * 0.16, s * 0.05); ctx.lineTo(s * 0.16, s * 0.05); ctx.closePath(); ctx.fill();
+    ctx.restore();
+    const deg = Math.round(wrapAng(pose.th) * 180 / Math.PI);
+    S.readouts([
+      ["Left stick (x, y)", `${inp.lx.toFixed(2)}, ${inp.ly.toFixed(2)}`],
+      ["Right stick x", inp.rx.toFixed(2)],
+      ["vx · vy (m/s)", `${out.vx.toFixed(2)} · ${out.vy.toFixed(2)}`],
+      ["omega (rad/s)", out.omega.toFixed(2)],
+      ["Mode", out.fieldCentric ? "field-centric" : "robot-centric"],
+      ["Heading", deg + "°"]]);
+  }
+  S.build(false);
+  robotLoop(S.canvas, step, draw);
+  REDRAWS.push(draw);
+}
+
+/* ===================== simulation 2: button bindings ===================== */
+const BIND_CODE = `// Commands you can use: brake, pointWheels, resetHeading, driveToSpot, rumble
+// Buttons: joystick.a() b() x() y() leftBumper() rightBumper()
+// Bindings: onTrue, whileTrue, toggleOnTrue, onFalse. Extras: .and(...), .withTimeout(seconds)
+joystick.a().whileTrue(brake);
+joystick.b().whileTrue(pointWheels);
+joystick.leftBumper().onTrue(resetHeading);
+joystick.rightBumper().whileTrue(driveToSpot);
+`;
+const CMD_INFO = {
+  brake: { label: "Brake", req: ["drivetrain"], kind: "forever", color: "red" },
+  pointWheels: { label: "Point wheels", req: ["drivetrain"], kind: "forever", color: "blue" },
+  resetHeading: { label: "Reset heading", req: ["drivetrain"], kind: "instant", color: "good" },
+  driveToSpot: { label: "Drive to spot", req: ["drivetrain"], kind: "finite", dur: 3, color: "gold-fill" },
+  rumble: { label: "Rumble", req: [], kind: "forever", color: "muted" }
+};
+const BUTTONS = [["a", "A"], ["b", "B"], ["x", "X"], ["y", "Y"], ["leftBumper", "LB"], ["rightBumper", "RB"]];
+
+function simBindings(host) {
+  let bindings = [];
+  const J = JavaMini;
+  function cmdObj(c) {
+    const o = J.obj("Command", {}, {
+      withTimeout: (args, line) => {
+        if (args.length !== 1 || !(args[0].t === "int" || args[0].t === "double")) throw new J.JErr(line, "withTimeout needs one number: the seconds, like .withTimeout(1)");
+        if (args[0].v <= 0) throw new J.JErr(line, "the timeout must be more than 0 seconds");
+        return cmdObj(Object.assign({}, c, { timeout: args[0].v }));
+      }
+    });
+    o.v.cmd = c;
+    return o;
+  }
+  const cmdOf = (arg, line) => {
+    if (!arg || arg.t !== "obj" || !arg.v.cmd) throw new J.JErr(line, `incompatible types: ${arg ? (arg.t === "obj" ? arg.v.cls : arg.t) : "nothing"} cannot be converted to Command`);
+    return arg.v.cmd;
+  };
+  function trigObj(buttons) {
+    const o = J.obj("Trigger", {}, {});
+    const bind = kind => (args, line, name) => {
+      if (args.length !== 1) throw new J.JErr(line, `${name} needs one command in the ( ), like ${name}(brake)`);
+      bindings.push({ buttons, kind, cmd: cmdOf(args[0], line), was: false });
+      return o;
+    };
+    o.v.methods = {
+      onTrue: bind("onTrue"), whileTrue: bind("whileTrue"), toggleOnTrue: bind("toggleOnTrue"), onFalse: bind("onFalse"),
+      and: (args, line) => {
+        if (args.length !== 1 || args[0].t !== "obj" || !args[0].v.buttons) throw new J.JErr(line, "and(...) needs another button, like .and(joystick.y())");
+        return trigObj(buttons.concat(args[0].v.buttons));
+      }
+    };
+    o.v.buttons = buttons;
+    return o;
+  }
+  const joyMethods = {};
+  BUTTONS.forEach(([b]) => { joyMethods[b] = (args, line) => { if (args.length) throw new J.JErr(line, `${b}() takes nothing in the ( )`); return trigObj([b]); }; });
+  ["back", "start"].forEach(b => { joyMethods[b] = () => trigObj([b]); });
+  const globals = () => {
+    const g = { joystick: J.obj("CommandXboxController", {}, joyMethods) };
+    for (const k in CMD_INFO) g[k] = cmdObj(Object.assign({ name: k }, CMD_INFO[k]));
+    return Object.assign(g, J.std);
+  };
+  function load(ast) {
+    bindings = [];
+    J.run(ast, { globals: globals() });
+    return bindings;
+  }
+
+  const running = new Map();
+  let t = 0, hist = [], logLines = [];
+  const pressedAt = {}, releasedAt = {};
+  const S = buildCodeSim(host, {
+    id: "bindings", title: "Button bindings",
+    intro: "Each line connects a button to a command. Change the bindings, press Build & run, then press and hold the buttons below. The timeline shows what the drivetrain is doing.",
+    aria: "Timeline of the last 8 seconds: which buttons were pressed and which command was using the drivetrain",
+    code: BIND_CODE,
+    check(ast) {
+      try { const b = load(ast); if (!b.length) return { line: 0, message: "no bindings yet: add a line like joystick.a().whileTrue(brake);" }; return null; }
+      catch (e) { return { line: e.line, message: e.message }; }
+    },
+    onBuilt(ast) { load(ast); running.clear(); log(`Built: ${bindings.length} binding${bindings.length === 1 ? "" : "s"} loaded.`); }
+  });
+  const pad = document.createElement("div"); pad.className = "pad-row";
+  const btn = {};
+  BUTTONS.forEach(([b, label]) => { btn[b] = makeHold(pad, label, "bind-btn-" + b); });
+  S.extra.appendChild(pad);
+  const keysP = document.createElement("p"); keysP.className = "keys";
+  keysP.innerHTML = `Hold the buttons with the mouse, or click one and use the keyboard: <kbd>A</kbd> <kbd>B</kbd> <kbd>X</kbd> <kbd>Y</kbd> <kbd>[</kbd> LB <kbd>]</kbd> RB`;
+  S.extra.appendChild(keysP);
+  const logEl = document.createElement("div"); logEl.className = "log"; logEl.setAttribute("aria-live", "polite");
+  const keyMap = { a: "a", b: "b", x: "x", y: "y", "[": "leftBumper", "]": "rightBumper" };
+  pad.addEventListener("keydown", e => { const b = keyMap[e.key.toLowerCase()]; if (b && !e.repeat) { e.preventDefault(); btn[b].set(true); } });
+  pad.addEventListener("keyup", e => { const b = keyMap[e.key.toLowerCase()]; if (b) btn[b].set(false); });
+  S.canvas.parentElement.after(logEl);
+
+  function log(msg) { logLines.unshift(`${t.toFixed(1)} s  ${msg}`); logLines = logLines.slice(0, 30); logEl.innerHTML = logLines.map(l => `<div>${esc(l)}</div>`).join(""); }
+  const label = c => CMD_INFO[c.name].label + (c.timeout ? ` (${c.timeout} s timeout)` : "");
+  function end(name, why) {
+    const r = running.get(name); if (!r) return;
+    running.delete(name);
+    log(`${label(r.cmd)} ${why}.`);
+    if (name === "brake" && why === "was toggled off" && r.via === "toggle-y") S.complete("b-toggle");
+    if (name === "pointWheels" && why === "timed out" && Math.abs((r.cmd.timeout || 0) - 1) < 1e-6 && r.via === "onTrue-b") S.complete("b-timeout");
+  }
+  function schedule(cmd, via) {
+    if (running.has(cmd.name)) return;
+    running.forEach((r, name) => {
+      if (r.cmd.req.some(q => cmd.req.includes(q))) {
+        end(name, `was interrupted by ${CMD_INFO[cmd.name].label}`);
+        if (name === "brake" && cmd.name === "driveToSpot") S.complete("b-interrupt");
+      }
+    });
+    running.set(cmd.name, { cmd, el: 0, via });
+    log(`${label(cmd)} started.`);
+  }
+  function step() {
+    t += 0.02;
+    BUTTONS.forEach(([b]) => {
+      const d = btn[b].down;
+      if (d && pressedAt[b] === undefined) { pressedAt[b] = t; delete releasedAt[b]; }
+      if (!d && pressedAt[b] !== undefined) { delete pressedAt[b]; releasedAt[b] = t; }
+    });
+    bindings.forEach(bd => {
+      const now = bd.buttons.every(b => btn[b] && btn[b].down), was = bd.was; bd.was = now;
+      const via = `${bd.kind}-${bd.buttons.join("+")}`.replace("toggleOnTrue-", "toggle-");
+      if (now && !was) {
+        if (bd.kind === "onTrue" || bd.kind === "whileTrue") schedule(bd.cmd, via);
+        if (bd.kind === "toggleOnTrue") { if (running.has(bd.cmd.name)) end(bd.cmd.name, "was toggled off"); else schedule(bd.cmd, via); }
+      }
+      if (!now && was) {
+        if (bd.kind === "whileTrue" && running.has(bd.cmd.name)) end(bd.cmd.name, "stopped: button released");
+        if (bd.kind === "onFalse") schedule(bd.cmd, via);
+      }
+    });
+    running.forEach((r, name) => {
+      r.el += 0.02;
+      if (r.cmd.timeout !== undefined && r.el >= r.cmd.timeout - 1e-9) end(name, "timed out");
+      else if (r.cmd.kind === "instant") end(name, "finished");
+      else if (r.cmd.kind === "finite" && r.el >= r.cmd.dur) end(name, "finished (arrived)");
+    });
+    const pw = running.get("pointWheels");
+    if (pw && pw.via === "onTrue-b" && releasedAt.b !== undefined && t - releasedAt.b >= 1 && !btn.b.down) S.complete("b-ontrue");
+    if (running.has("rumble") && running.has("brake")) S.complete("b-together");
+    let dt = "default";
+    running.forEach((r, name) => { if (r.cmd.req.includes("drivetrain")) dt = name; });
+    hist.push({ b: BUTTONS.map(([b]) => btn[b].down), dt, rumble: running.has("rumble") });
+    if (hist.length > 400) hist.shift();
+  }
+  function draw() {
+    const { w, h, ctx } = fit(S.canvas, 250);
+    const muted = css("muted"), lineC = css("line"), ink = css("ink");
+    const X0 = 104, X1 = w - 10, n = 400, xx = i => X0 + (i / (n - 1)) * (X1 - X0);
+    const off = n - hist.length;
+    const laneH = 18;
+    BUTTONS.forEach(([b, label], k) => {
+      const y = 10 + k * laneH;
+      txt(ctx, label, X0 - 10, y + laneH / 2, muted, "right");
+      ctx.strokeStyle = lineC; ctx.lineWidth = 1; ln(ctx, X0, y + laneH - 2, X1, y + laneH - 2);
+      ctx.fillStyle = ink;
+      let start = -1;
+      for (let i = 0; i <= hist.length; i++) {
+        const on = i < hist.length && hist[i].b[k];
+        if (on && start < 0) start = i;
+        if (!on && start >= 0) { ctx.fillRect(xx(off + start), y + 3, Math.max(2, xx(off + i) - xx(off + start)), laneH - 7); start = -1; }
+      }
+    });
+    const lanes = [["drivetrain", p => p.dt], ["controller", p => (p.rumble ? "rumble" : null)]];
+    lanes.forEach(([name, get], k) => {
+      const y = 10 + BUTTONS.length * laneH + 10 + k * 34;
+      txt(ctx, name, X0 - 10, y + 13, muted, "right");
+      let start = 0;
+      for (let i = 1; i <= hist.length; i++) {
+        const cur = i < hist.length ? get(hist[i]) : undefined, prev = get(hist[i - 1]);
+        if (i === hist.length || cur !== prev) {
+          if (prev) {
+            const x0 = xx(off + start), x1 = xx(off + i);
+            ctx.fillStyle = prev === "default" ? css("line") : css(CMD_INFO[prev].color);
+            ctx.fillRect(x0, y, Math.max(2, x1 - x0), 26);
+            const lab = prev === "default" ? "joystick driving" : CMD_INFO[prev].label;
+            if (x1 - x0 > ctx.measureText(lab).width + 10) txt(ctx, lab, x0 + 5, y + 13, prev === "default" ? muted : "#142030");
+          }
+          start = i;
+        }
+      }
+      ctx.strokeStyle = lineC; ctx.strokeRect(X0, y, X1 - X0, 26);
+    });
+    txt(ctx, "8 s ago", X0, h - 10, muted); txt(ctx, "now", X1, h - 10, muted, "right");
+    const cur = hist.length ? hist[hist.length - 1].dt : "default";
+    S.readouts([
+      ["Drivetrain is running", cur === "default" ? "Joystick driving (default)" : CMD_INFO[cur].label],
+      ["Controller", running.has("rumble") ? "Rumbling" : "Quiet"],
+      ["Bindings loaded", String(bindings.length)]]);
+  }
+  S.build(false);
+  robotLoop(S.canvas, step, draw);
+  REDRAWS.push(draw);
+}
+
+Lab.start({
+  key: "cg-teleop-lab-v1",
+  lessons: TELEOP_LESSONS,
+  challenges: TELEOP_CHALLENGES,
+  sims: { drive: simDrive, bindings: simBindings }
+});
+</script>
+</body>
+</html>

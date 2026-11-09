@@ -1,0 +1,609 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>CODE Gold Subsystems Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="lab.css">
+</head>
+<body>
+<div class="wrap">
+  <aside class="rail">
+    <div class="brand">
+      <span class="team">FRC 8352 · CODE Gold</span>
+      <span class="name">Subsystems Lab</span>
+    </div>
+    <nav class="labnav" aria-label="Labs"><a href="./">Auto Lab</a><a href="teleop.html">Teleop Lab</a><a href="subsystems.html" aria-current="page">Subsystems Lab</a></nav>
+    <div class="score" aria-live="polite">
+      <div class="big"><span id="scoreRight">0</span> <small>/ <span id="scoreTotal">0</span> correct</small></div>
+      <div class="bar"><i id="scoreBar"></i></div>
+      <div class="sub" id="scoreSub">0 of 0 questions answered</div>
+      <div class="sub" id="taskSub">0 of 0 hands-on tasks done</div>
+      <div class="sub" id="simSub">0 of 0 sim challenges done</div>
+    </div>
+    <ul class="toc" id="toc"></ul>
+    <button class="reset" id="resetBtn" type="button">Start over</button>
+  </aside>
+
+  <main>
+    <section class="intro">
+      <span class="eyebrow">2026–27 off-season · robot code</span>
+      <h1>Adding a mechanism: subsystems</h1>
+      <p class="lede">Six labs on how to add a new mechanism, like an intake or an arm, to our robot code. In two of them you write the Java that runs the mechanism and watch it work (or jam) in a simulator.</p>
+      <div class="legend">
+        <div><b>Change the code</b><span>Edit the Java, press Build &amp; run, and use the controls. Typos give you real Java error messages, with the line number.</span></div>
+        <div><b>Try it</b><span>Hands-on tasks. Tick each step as you do it. Some need the laptop, the sim or the robot.</span></div>
+        <div><b>Hint first</b><span>Stuck? Open the hint. It shows how to start, not the answer. Hints don't cost points.</span></div>
+        <div><b>Worked solution</b><span>After you answer, you get the steps. Check your reasoning, not just your answer.</span></div>
+      </div>
+    </section>
+    <div class="lessons" id="lessons"></div>
+    <section class="done-card">
+      <h2>Finished?</h2>
+      <p id="doneText">Answer every question to see your result here.</p>
+      <ul id="doneList"></ul>
+    </section>
+  </main>
+</div>
+
+<script src="lab.js"></script>
+<script>
+/* ===================== lessons ===================== */
+const SUB_LESSONS = [
+{
+  id: "what", title: "What a subsystem is", where: "src/main/java/frc/robot/subsystems/",
+  body: `
+<p>A <b>subsystem</b> is one part of the robot that commands can control: the drivetrain, an intake, an arm, a shooter. In code it's a class that <code>extends SubsystemBase</code>, and it has three jobs:</p>
+<ul>
+<li><b>Own its hardware.</b> Its motors and sensors live inside it, and nothing else talks to them directly.</li>
+<li><b>Offer actions.</b> Methods and commands like <code>intake()</code> or <code>setEnabledCommand(true)</code>.</li>
+<li><b>Run <code>periodic()</code></b> every 20 ms, even while disabled: a good place to read sensors and update the dashboard.</li>
+</ul>
+<p>Only <b>one command can use a subsystem at a time</b>. That rule keeps two commands from giving the same motor different orders.</p>
+<p>Our robot already has two subsystems: <code>CommandSwerveDrivetrain</code> and <code>Vision</code>. Here's the shape of Vision with the details taken out:</p>`,
+  code: `public class Vision extends SubsystemBase {
+    private final CommandSwerveDrivetrain m_drivetrain;   // what it works with
+
+    public Vision(CommandSwerveDrivetrain drivetrain) {    // constructor: runs once at startup
+        m_drivetrain = drivetrain;
+    }
+
+    public Command setEnabledCommand(boolean enabled) {    // an action other code can use
+        return Commands.runOnce(() -> setEnabled(enabled));
+    }
+
+    @Override
+    public void periodic() {                               // runs every 20 ms
+        // read the Limelight, send good estimates to the drivetrain
+    }
+}`,
+  questions: [
+    { id: "w1", type: "text", find: true, q: "Find it in the code: open Vision.java. What class does Vision extend? (one word)", accept: ["SubsystemBase"], placeholder: "class name",
+      hint: "Look at the line that starts with public class Vision.",
+      steps: ["Open subsystems/Vision.java.", "The class line reads: public class Vision extends SubsystemBase.", "Extending SubsystemBase is what makes it a subsystem: WPILib calls its periodic() and tracks which command is using it."] },
+    { id: "w2", type: "mc", q: "When does a subsystem's periodic() run?",
+      options: ["Only in autonomous", "Only when a command is using it", "Every 20 ms, in every mode, even disabled", "Once, when the robot turns on"], answer: 2,
+      hint: "Read the third bullet in the lesson.",
+      steps: ["The command scheduler calls periodic() on every subsystem each loop.", "The loop runs every 20 ms in every mode, including disabled.", "That's why Vision can keep reading the Limelight while the robot is disabled."] },
+    { id: "w3", type: "mc", q: "Why make the intake its own subsystem instead of adding its motor to the drivetrain?",
+      options: ["It's required by FRC rules", "So the robot can drive and intake at the same time with separate commands", "Because the drivetrain is generated code", "To make the code longer"], answer: 1,
+      hint: "Remember the rule: one command per subsystem.",
+      steps: ["Only one command can use a subsystem at a time.", "If the intake motor were in the drivetrain, an intake command would interrupt driving.", "As separate subsystems, a drive command and an intake command can run together."] },
+    { id: "w4", type: "mc", q: "Which of these should NOT be in a subsystem's periodic()?",
+      options: ["Reading a sensor", "Putting a value on the dashboard", "Driving the motor based on which button is held", "Checking for a jam"], answer: 2,
+      hint: "Which job belongs to commands and bindings instead?",
+      steps: ["periodic() runs all the time, no matter which command is running.", "Deciding what the motor does from buttons is the job of commands and bindings.", "If periodic() also drove the motor, it would fight whatever command is running."] }
+  ]
+},
+{
+  id: "build", sims: ["intake"], title: "Building an intake subsystem", where: "Example: subsystems/Intake.java (not on our robot yet)",
+  body: `
+<p>Here's what a simple intake subsystem looks like with our Phoenix 6 motors. Our robot doesn't have an intake yet; this is the pattern to copy when it does.</p>
+<ul>
+<li><b>A motor</b> (TalonFX) with a <b>CAN ID nothing else uses</b>.</li>
+<li><b>A sensor</b>: a beam break that sees when a game piece is inside. Most beam breaks read <code>false</code> when something blocks them, so <code>hasPiece()</code> flips it with <code>!</code>. Check yours.</li>
+<li><b>A current limit</b>, so a jammed motor doesn't overheat or trip a breaker.</li>
+<li><b>Commands</b> built with <code>run(...)</code>, which automatically require the intake. The default command stops the motor whenever nothing else is using it.</li>
+</ul>
+<p>The simulator below boils this down to the decision the intake makes every 20 ms: given the buttons and the sensor, how many volts?</p>`,
+  code: `public class Intake extends SubsystemBase {
+    private final TalonFX m_motor = new TalonFX(50);              // pick a CAN ID nothing else uses
+    private final DigitalInput m_beamBreak = new DigitalInput(0); // DIO port 0 on the roboRIO
+    private final VoltageOut m_request = new VoltageOut(0);
+
+    public Intake() {
+        var config = new TalonFXConfiguration();
+        config.CurrentLimits.StatorCurrentLimit = 40;             // amps: protects the motor when jammed
+        config.CurrentLimits.StatorCurrentLimitEnable = true;
+        config.MotorOutput.NeutralMode = NeutralModeValue.Brake;
+        m_motor.getConfigurator().apply(config);
+        setDefaultCommand(stop());
+    }
+
+    public boolean hasPiece() { return !m_beamBreak.get(); }     // most beam breaks read false when blocked
+
+    public Command intake() { return run(() -> m_motor.setControl(m_request.withOutput(8))).until(this::hasPiece); }
+    public Command eject()  { return run(() -> m_motor.setControl(m_request.withOutput(-6))); }
+    public Command stop()   { return run(() -> m_motor.setControl(m_request.withOutput(0))); }
+
+    @Override
+    public void periodic() {
+        SmartDashboard.putBoolean("Intake/Has Piece", hasPiece());
+    }
+}`,
+  questions: [
+    { id: "i1", type: "mc", q: "Which CAN ID is safe for the new intake motor? (Our drivetrain uses 1–5, 10, 11, 21, 22, 31, 32, 41, 42.)",
+      options: ["5", "21", "50", "3"], answer: 2,
+      hint: "Cross off every ID the drivetrain already uses.",
+      steps: ["5 is the Pigeon gyro.", "21 is the front-right drive motor.", "3 is the back-right CANcoder.", "50 isn't used, so it's safe."] },
+    { id: "i2", type: "mc", q: "Why set a 40 A current limit on the intake motor?",
+      options: ["To make it spin faster", "To protect the motor and the breaker when the intake jams", "Because FRC requires exactly 40 A", "To save battery during auto"], answer: 1,
+      hint: "What happens to current when a motor is stuck?",
+      steps: ["A stuck (stalled) motor draws a huge current.", "Huge current heats the motor fast and can trip the breaker.", "A current limit caps it, so a jam is annoying instead of damaging."] },
+    { id: "i3", type: "mc", q: "intake() is run(...).until(this::hasPiece). What does .until(...) do?",
+      options: ["Waits for a piece before starting", "Runs the motor until the sensor sees a piece, then the command ends", "Runs only while there's a piece", "Ejects the piece"], answer: 1,
+      hint: "until = keep going until something becomes true.",
+      steps: ["run(...) would keep the motor going forever.", ".until(this::hasPiece) ends the command as soon as hasPiece() is true.", "When it ends, the default command (stop) takes over and the motor stops."] },
+    { id: "i4", type: "mc", q: "hasPiece() returns !m_beamBreak.get(). Why the !?",
+      options: ["It's a typo", "Most beam breaks read false when something blocks them, so ! turns that into \"has a piece = true\"", "To make the code faster", "To invert the motor"], answer: 1,
+      hint: "! means \"not\". What does the sensor read when a piece blocks it?",
+      steps: ["The beam break reads true when the beam is clear and false when it's blocked (for most sensors).", "A piece blocks the beam, so get() is false when we have a piece.", "!false = true, so hasPiece() is true. Always test your sensor to be sure."] },
+    { id: "i5", type: "mc", q: "setDefaultCommand(stop()). When does stop() run?",
+      options: ["Only at the start of the match", "Whenever no other command is using the intake", "Only when the robot is disabled", "Every time a button is pressed"], answer: 1,
+      hint: "What's a default command for?",
+      steps: ["A default command runs whenever its subsystem has nothing else to do.", "So after intake() ends or eject() is released, stop() takes over.", "That makes \"motor off\" the safe normal state."] }
+  ]
+},
+{
+  id: "commands", title: "Commands, requirements and default commands", where: "WPILib command-based framework",
+  body: `
+<p>Subsystems have handy methods that build commands for you. Each one automatically <b>requires</b> the subsystem:</p>
+<div class="tbl"><table>
+<tr><th>Method</th><th>What it does</th></tr>
+<tr><td><code>runOnce(action)</code></td><td>Does the action once, then ends</td></tr>
+<tr><td><code>run(action)</code></td><td>Does the action every 20 ms until interrupted</td></tr>
+<tr><td><code>startEnd(start, end)</code></td><td>Does start once, then end when the command stops</td></tr>
+</table></div>
+<p>You can add to any command:</p>
+<div class="tbl"><table>
+<tr><th>Add-on</th><th>What it does</th></tr>
+<tr><td><code>.until(condition)</code></td><td>Ends when the condition becomes true</td></tr>
+<tr><td><code>.withTimeout(seconds)</code></td><td>Ends after that long</td></tr>
+<tr><td><code>.andThen(other)</code></td><td>Runs another command after this one</td></tr>
+</table></div>
+<p><code>Commands.runOnce(...)</code>, without a subsystem in front, requires <i>nothing</i>, so it never interrupts anything. That's how Vision's on/off command works.</p>
+<p>The Teleop Lab has a simulator where you can watch commands interrupt each other.</p>`,
+  questions: [
+    { id: "m1", type: "mc", q: "The driver holds RT (intake, whileTrue), then also holds LB (eject, whileTrue), then lets go of LB. What's the intake doing now?",
+      options: ["Intaking again, because RT is still held", "Stopped: eject interrupted intake, and whileTrue doesn't restart it, so the default stop() runs", "Still ejecting", "Both at once"], answer: 1,
+      hint: "Both commands require the intake. And whileTrue only starts a command at one moment.",
+      steps: ["Pressing LB starts eject, which interrupts intake (same subsystem).", "Releasing LB ends eject.", "RT is still held, but whileTrue only starts when the button is first pressed, so intake doesn't come back.", "Nothing is using the intake, so the default command stop() runs. Press RT again to intake."] },
+    { id: "m2", type: "mc", q: "intake.startEnd(() -> setVolts(8), () -> setVolts(0)), bound with whileTrue. What happens when the button is released?",
+      options: ["The motor keeps running at 8 V", "The end action runs: the motor is set to 0 V", "The robot disables", "Nothing until the next press"], answer: 1,
+      hint: "startEnd has two actions. When does the second one run?",
+      steps: ["startEnd runs the first action when the command starts.", "Releasing the button ends the command, which runs the second action.", "setVolts(0) stops the motor."] },
+    { id: "m3", type: "mc", q: "intake.intake().withTimeout(2). When does it end?",
+      options: ["Always after 2 s", "When a piece is seen OR after 2 s, whichever comes first", "Only when a piece is seen", "Never"], answer: 1,
+      hint: "intake() already ends on its own. Now there are two ways to end.",
+      steps: ["intake() ends when hasPiece() is true.", ".withTimeout(2) adds another way to end: 2 seconds.", "Whichever happens first ends it. Great for autos, so a missed piece can't get the routine stuck."] },
+    { id: "m4", type: "mc", q: "What's the difference between drivetrain.runOnce(action) and Commands.runOnce(action)?",
+      options: ["None", "The first requires the drivetrain (it interrupts driving for a moment); the second requires nothing", "The second is faster", "The first runs every 20 ms"], answer: 1,
+      hint: "Which one has a subsystem in front of it?",
+      steps: ["subsystem.runOnce(...) builds a command that requires that subsystem.", "Commands.runOnce(...) builds one with no requirements.", "Our left bumper uses drivetrain.runOnce(drivetrain::seedFieldCentric), which interrupts driving for one loop."] },
+    { id: "m5", type: "write", q: "In your own words: what's a default command, and why should a motor's default command usually be \"stop\"?",
+      hint: "What should a mechanism do when nobody is asking it to do anything?",
+      model: "A default command runs whenever no other command is using the subsystem. Making it stop() means the mechanism goes back to a safe, known state, motor off, as soon as a button is released or an auto step finishes, instead of continuing whatever it was last told." }
+  ]
+},
+{
+  id: "arm", sims: ["arm"], title: "Mechanisms with feedback: an arm", where: "Example: subsystems/Arm.java",
+  body: `
+<p>An intake only needs "on" or "off". An arm has to go to an <b>angle</b> and stay there, which takes <b>feedback</b>: measure the angle, compare it with the target, and correct.</p>
+<ul>
+<li><b>kP</b> (proportional): volts per degree of error. Bigger error, bigger push.</li>
+<li><b>kG</b> (gravity): the volts needed to hold the arm level. Gravity pulls hardest when the arm is level (0°) and not at all when it's straight up (90°), so we use <code>kG × cos(angle)</code>.</li>
+<li><b>kD</b> (damping): pushes against fast movement, so the arm doesn't overshoot and bounce.</li>
+<li><b>Limits</b>: never ask for more volts than is safe, and never aim past where the arm can physically go.</li>
+</ul>
+<p>On the real robot, a TalonFX can do all of this on the motor controller itself, 1000 times a second. You set the gains once and send a target position:</p>`,
+  code: `var slot0 = new Slot0Configs();
+slot0.kP = 30;                                   // example numbers: tune on the real arm
+slot0.kD = 0.5;
+slot0.kG = 0.4;                                  // volts to hold the arm level
+slot0.GravityType = GravityTypeValue.Arm_Cosine; // uses kG × cos(angle); 0 must mean level
+m_motor.getConfigurator().apply(slot0);
+
+m_motor.setControl(m_positionRequest.withPosition(targetRotations)); // PositionVoltage request`,
+  questions: [
+    { id: "a1", type: "num", q: "kP = 0.15 volts per degree. The arm is 20° below its target. What does the P part ask for?", answer: 3, tol: 0.01, unit: "V",
+      hint: "P part = kP × error.",
+      steps: ["error = 20°.", "0.15 × 20 = 3 V."] },
+    { id: "a2", type: "num", q: "kG = 4 V. The arm is at 60°. What does kG × cos(angle) give? (cos 60° = 0.5)", answer: 2, tol: 0.01, unit: "V",
+      hint: "Multiply kG by the cosine.",
+      steps: ["cos(60°) = 0.5.", "4 × 0.5 = 2 V.", "At 60° gravity pulls half as hard as when level, so it takes half the holding voltage."] },
+    { id: "a3", type: "mc", q: "Why does a P-only arm stop a little below its target when it's near level?",
+      options: ["The motor is broken", "P needs some error to make the voltage that holds the arm up, so it settles where error × kP = holding voltage", "The sensor is wrong", "kP is too big"], answer: 1,
+      hint: "If the error were zero, how many volts would P give?",
+      steps: ["At zero error, P gives zero volts, and gravity pulls the arm down.", "It sags until the error is big enough that kP × error holds it up.", "kG gives the holding voltage directly, so the error can go to zero. Try it in the simulator."] },
+    { id: "a4", type: "mc", q: "The arm reaches its target but overshoots and bounces. Which gain helps most?",
+      options: ["More kP", "kD (damping)", "Less kG", "A bigger current limit"], answer: 1,
+      hint: "Which gain reacts to speed?",
+      steps: ["kD pushes against fast movement.", "That slows the arm as it swings toward the target, so it doesn't fly past.", "More kP usually makes bouncing worse."] },
+    { id: "a5", type: "mc", q: "Why should 0 mean \"level\" when using GravityType Arm_Cosine?",
+      options: ["It doesn't matter", "cos(0) = 1 is the strongest gravity: kG only works out right if 0 really is level", "Phoenix 6 rejects other values", "So the arm starts at 0"], answer: 1,
+      hint: "Where is cos biggest?",
+      steps: ["cos is biggest (1) at 0° and zero at 90°.", "Gravity is strongest when the arm is level.", "If 0 meant \"straight down\", kG × cos would push hardest exactly where gravity doesn't pull sideways at all."] }
+  ]
+},
+{
+  id: "wiring", title: "Adding a subsystem to the robot", where: "RobotContainer.java · Phoenix Tuner X",
+  body: `
+<p>Writing the class is half the job. To put a new mechanism on the robot:</p>
+<ol>
+<li><b>Pick a CAN ID</b> nothing else uses, and set it on the motor in Phoenix Tuner X. Update its firmware while you're there.</li>
+<li><b>Create it once</b> in <code>RobotContainer</code>.</li>
+<li><b>Bind buttons</b> to its commands in <code>configureBindings()</code>.</li>
+<li><b>Register named commands</b> if autos will use it, <i>before</i> <code>buildAutoChooser</code> (from the Auto Lab).</li>
+<li><b>Test in order:</b> build → simulate → robot on blocks → low power → full power.</li>
+</ol>
+<div class="tbl"><table>
+<tr><th>CAN IDs already used</th><th></th></tr>
+<tr><td>Drive motors</td><td>10, 21, 31, 41</td></tr>
+<tr><td>Steer motors</td><td>11, 22, 32, 42</td></tr>
+<tr><td>CANcoders</td><td>1, 2, 3, 4</td></tr>
+<tr><td>Pigeon 2 gyro</td><td>5</td></tr>
+</table></div>
+<p>Pick buttons carefully too: X and Y are part of our SysId combos, so a plain X binding would also fire whenever someone starts SysId.</p>`,
+  code: `public class RobotContainer {
+    private final Intake intake = new Intake();                // 2. create it once
+
+    public RobotContainer() {
+        // 4. let PathPlanner autos use it (register BEFORE buildAutoChooser)
+        NamedCommands.registerCommand("Intake", intake.intake().withTimeout(3));
+        autoChooser = AutoBuilder.buildAutoChooser("Square Test");
+        ...
+    }
+
+    private void configureBindings() {
+        // 3. connect buttons to its commands
+        joystick.rightTrigger().whileTrue(intake.intake());
+        joystick.leftTrigger().whileTrue(intake.eject());
+        ...
+    }
+}`,
+  tasks: [
+    { id: "t-add", title: "Add a real subsystem (with a mentor)", need: "A motor on the robot, laptop with Phoenix Tuner X and the repo",
+      steps: ["Pick a CAN ID that isn't in the table. Write it down.", "In Phoenix Tuner X, find the new motor, update its firmware, and set its CAN ID.", "Make a branch, like intake-subsystem.", "Write the subsystem class (start from the Intake example) and create it in RobotContainer.", "./gradlew build, then run it in simulation.", "On the robot, with the mechanism free to move (or the robot on blocks), test at low voltage first (try 2–3 V).", "Check the current and temperature in Tuner X while it runs, then open a PR."],
+      expect: "The new motor shows up in Tuner X with its own ID and no conflicts, spins the right way at low voltage, and stops when the button is released. If it spins backward, fix the motor's direction in its config, not by flipping signs all over the code." }
+  ],
+  questions: [
+    { id: "r1", type: "num", q: "How many CAN IDs does our drivetrain use in total?", answer: 13, tol: 0.01, unit: "",
+      hint: "Count the table: drive motors, steer motors, CANcoders and the Pigeon.",
+      steps: ["4 drive motors + 4 steer motors = 8.", "4 CANcoders → 12.", "1 Pigeon → 13."] },
+    { id: "r2", type: "mc", q: "Two devices end up with the same CAN ID. What happens?",
+      options: ["Nothing, CAN sorts it out", "Their messages get mixed up: one or both act wrong or go missing, and Tuner X shows a conflict", "The robot runs twice as fast", "Only the newer one works"], answer: 1,
+      hint: "The ID is how each message finds its device.",
+      steps: ["Every message on the CAN bus is addressed by device type and ID.", "Two of the same type with the same ID can't be told apart.", "Commands and readings get mixed up. Tuner X flags it, so always check there after adding a device."] },
+    { id: "r3", type: "mc", q: "You add NamedCommands.registerCommand(\"Intake\", ...) after buildAutoChooser. What happens in autos?",
+      options: ["Works fine", "The Intake step in autos does nothing, because the autos were built before the name existed", "The robot won't enable", "The auto chooser disappears"], answer: 1,
+      hint: "This is the same mistake as in the Auto Lab.",
+      steps: ["buildAutoChooser builds every auto right away.", "An auto step named \"Intake\" is looked up at that moment.", "If it isn't registered yet, that step becomes a do-nothing."] },
+    { id: "r4", type: "mc", q: "Why test a new mechanism at low voltage first?",
+      options: ["To save battery", "If something's wrong (direction, limits, wiring), it fails slowly instead of breaking parts or hurting someone", "Low voltage is more accurate", "FRC rules require it"], answer: 1,
+      hint: "What's the worst thing a brand-new mechanism could do?",
+      steps: ["A new mechanism might spin backward, hit a hard stop, or have a wiring mistake.", "At low voltage, those mistakes happen slowly and gently.", "Once it behaves, raise the power step by step."] }
+  ]
+},
+{
+  id: "simulate", title: "Simulating a subsystem", where: "WPILib physics simulation · Phoenix 6 sim",
+  body: `
+<p>The arm and intake simulators on this page are simplified versions of a real technique: run a <b>physics model</b> of the mechanism and your <b>real code</b> together, 50 times a second.</p>
+<p>WPILib has ready-made models: <code>DCMotorSim</code> (a motor with a load), <code>ElevatorSim</code>, and <code>SingleJointedArmSim</code>. With Phoenix 6, you feed the model's results back into the simulated motor through <code>TalonFX.getSimState()</code>, so your code reads sensor values as if the mechanism were real.</p>
+<p>Our drivetrain already does this: <code>startSimThread()</code> in <code>CommandSwerveDrivetrain</code> runs the swerve physics every 4 ms. That's why autos work in the simulator.</p>
+<p>Simulation catches logic mistakes. It can't catch a swapped wire, a wrong CAN ID, a sensor that reads backward, or a mechanism that rubs. Those only show up on the real robot.</p>`,
+  tasks: [
+    { id: "t-armsim", title: "Run WPILib's arm simulation example", need: "Laptop with WPILib 2026",
+      steps: ["Ctrl+Shift+P → WPILib: Create a new project → Example → Java → Arm Simulation.", "Save it somewhere outside our robot repo.", "Simulate Robot Code → Sim GUI, and open the arm's Mechanism2d view under NetworkTables.", "Enable Teleoperated and use the joystick button the example's code binds (look in Robot.java) to move the arm.", "Find the arm's kP in the code, change it, and run again."],
+      expect: "A drawing of an arm that swings to a setpoint. Raising kP makes it faster and bouncier, the same thing you saw in this page's arm simulator." }
+  ],
+  questions: [
+    { id: "s1", type: "num", find: true, q: "Find it in the code: in CommandSwerveDrivetrain.java, what is kSimLoopPeriod, in milliseconds?", answer: 4, tol: 0.01, unit: "ms",
+      hint: "Search for kSimLoopPeriod. The number is in seconds.",
+      steps: ["Open subsystems/CommandSwerveDrivetrain.java and search kSimLoopPeriod.", "It's 0.004 seconds.", "0.004 s × 1000 = 4 ms. The physics runs 5 times per robot loop, for a smoother simulation."] },
+    { id: "s2", type: "mc", q: "Which problem can simulation NOT catch?",
+      options: ["A command bound to the wrong button", "A motor wired so it spins backward", "Forgetting the default command", "A math mistake in kG × cos(angle)"], answer: 1,
+      hint: "Which of these is about the real hardware?",
+      steps: ["Button bindings, default commands and math are all in the code, so the sim runs them.", "Which way a real motor spins depends on wiring and mechanics.", "The sim assumes the hardware matches the code, so only the real robot shows that mistake."] },
+    { id: "s3", type: "write", q: "Your team adds an arm. Describe the order you'd test it in, and why that order.",
+      hint: "Start where mistakes are cheapest.",
+      model: "First build and run it in simulation, where mistakes cost nothing. Then on the real robot with the arm free to move and nobody near it, at low voltage, checking direction, limits, current and temperature. Only then raise the power and tune. Each step catches problems before they can break the mechanism or hurt someone." }
+  ]
+}
+];
+
+/* ===================== simulation challenges ===================== */
+const SUB_CHALLENGES = {
+  intake: [
+    ["i-jam", "With the original code, hold Intake until the piece reaches the back. What happens to the current and the motor temperature?"],
+    ["i-stop", "Fix it: stop the motor when hasPiece is true, even if the driver keeps holding Intake."],
+    ["i-eject", "After your fix, make sure Eject still works when you have a piece. (Hint: the order of your ifs matters.)"],
+    ["i-hold", "Add a small 1 V \"hold\" when you have a piece and no button is held, so the piece doesn't slide out."]
+  ],
+  arm: [
+    ["a-droop", "With kG = 0, set the target to 0° (level). How far below the target does the arm stop?"],
+    ["a-kg", "Find a kG that holds the arm at 0° within 1°."],
+    ["a-damp", "Use kD so a move to 60° overshoots by less than 2° and ends within 1°."],
+    ["a-limit", "Safety: never send more than 6 volts either way, while still using at least 5 V on big moves."],
+    ["a-soft", "Soft limit: if the target is above 100°, go to 100° instead, so the arm never hits the top stop."]
+  ]
+};
+
+/* ===================== simulation 1: intake ===================== */
+const INTAKE_CODE = `// Runs every 20 ms inside the Intake subsystem.
+// intakeButton, ejectButton: is the driver holding that button? (true/false)
+// hasPiece: does the beam-break sensor see a game piece inside? (true/false)
+double volts = 0;
+
+if (intakeButton) {
+    volts = 8;
+}
+if (ejectButton) {
+    volts = -6;
+}
+`;
+const B = JavaMini.B;
+function intakeEval(ast, i, e, h) {
+  return JavaMini.run(ast, { globals: Object.assign({}, JavaMini.std), inputs: { intakeButton: B(!!i), ejectButton: B(!!e), hasPiece: B(!!h) } });
+}
+
+function simIntake(host) {
+  const st = { p: -0.12, present: true, respawn: 0, stall: 0, temp: 25, volts: 0, current: 0, roller: 0, collected: 0 };
+  const S = buildCodeSim(host, {
+    id: "intake", title: "Intake logic",
+    intro: "Write how many volts the intake motor gets. You can read intakeButton, ejectButton and hasPiece, and you must set a double named volts. Positive volts pull a piece in; negative push it out. Then hold the buttons below.",
+    aria: "Side view of an intake: a roller at the mouth, a game piece, a beam-break sensor and a back wall, plus motor current and temperature",
+    code: INTAKE_CODE,
+    check(ast) {
+      try { const v = intakeEval(ast, false, false, false); if (typeof v.volts !== "number") return { line: 0, message: "your code needs a double named volts" }; return null; }
+      catch (e) { return { line: e.line, message: e.message }; }
+    },
+    onBuilt(ast) {
+      const f = (i, e, h) => { try { const v = intakeEval(ast, i, e, h).volts; return typeof v === "number" ? v : NaN; } catch (er) { return NaN; } };
+      const stops = f(true, false, true) <= 1.0001 && f(true, false, true) >= 0 && f(true, false, false) > 2;
+      const ejects = f(false, true, true) < -1 && f(false, true, false) < -1;
+      const holds = Math.abs(f(false, false, true) - 1) < 0.01 && f(false, false, false) === 0;
+      if (stops) S.complete("i-stop");
+      if (stops && ejects) S.complete("i-eject");
+      if (stops && ejects && holds) S.complete("i-hold");
+    }
+  });
+  const pad = document.createElement("div"); pad.className = "pad-row";
+  const bIn = makeHold(pad, "Intake (hold)", "intake-btn-in"), bOut = makeHold(pad, "Eject (hold)", "intake-btn-out");
+  const resetP = document.createElement("button"); resetP.type = "button"; resetP.className = "btn ghost"; resetP.id = "intake-new-piece"; resetP.textContent = "New piece";
+  resetP.addEventListener("click", () => { st.p = -0.12; st.present = true; st.respawn = 0; });
+  pad.appendChild(resetP);
+  S.extra.appendChild(pad);
+  const keysP = document.createElement("p"); keysP.className = "keys";
+  keysP.innerHTML = `Or click a button and hold <kbd>Space</kbd>.`;
+  S.extra.appendChild(keysP);
+
+  const SENSOR = 0.30, BACK = 0.40;
+  function step() {
+    const has = st.present && st.p >= SENSOR - 0.02;
+    let volts = 0;
+    const prog = S.program();
+    if (prog) {
+      try { const v = intakeEval(prog, bIn.down, bOut.down, has).volts; volts = Math.max(-12, Math.min(12, +v || 0)); }
+      catch (e) { S.runtimeError(e); }
+    }
+    st.volts = volts;
+    st.roller += volts * 0.05;
+    let stalled = false;
+    if (st.present) {
+      const contact = st.p > -0.17;
+      if (contact) st.p += volts * 0.1 * 0.02;
+      if (st.p >= BACK) { st.p = BACK; stalled = volts > 0.5; }
+      if (st.p < -0.32) { st.present = false; st.respawn = 1.2; }
+    } else if ((st.respawn -= 0.02) <= 0) { st.present = true; st.p = -0.12; }
+    st.stall = stalled ? st.stall + 0.02 : 0;
+    st.current = stalled ? Math.min(40, Math.abs(volts) / 12 * 120) : 1.5 + Math.abs(volts) * 0.4;
+    st.temp += st.current * st.current * 4e-5 - (st.temp - 25) * 0.003;
+    if (st.stall >= 0.5 && volts >= 4) S.complete("i-jam");
+  }
+  function draw() {
+    const { w, h, ctx } = fit(S.canvas, 240);
+    const ink = css("ink"), muted = css("muted"), lineC = css("line"), gold = css("gold-fill"), bad = css("bad"), good = css("good");
+    const sc = Math.min((w - 200) / 0.95, 330), x0 = 30 + 0.4 * sc, floor = 170;
+    const fx = x => x0 + x * sc;
+    ctx.strokeStyle = ink; ctx.lineWidth = 2; ln(ctx, 10, floor, fx(0.55), floor);
+    // channel
+    ctx.strokeStyle = ink; ctx.lineWidth = 3;
+    ln(ctx, fx(0.02), floor - 0.17 * sc, fx(BACK + 0.02), floor - 0.17 * sc);
+    ln(ctx, fx(BACK + 0.06), floor - 0.17 * sc, fx(BACK + 0.06), floor);
+    txt(ctx, "back wall", fx(BACK + 0.06), floor + 14, muted, "center");
+    // roller
+    const rx = fx(-0.02), ry = floor - 0.15 * sc, rr = 0.05 * sc;
+    ctx.fillStyle = css("surface"); ctx.beginPath(); ctx.arc(rx, ry, rr, 0, 7); ctx.fill();
+    ctx.strokeStyle = ink; ctx.lineWidth = 2; ctx.stroke();
+    for (let k = 0; k < 4; k++) { const a = st.roller + k * Math.PI / 2; ln(ctx, rx, ry, rx + rr * Math.cos(a), ry + rr * Math.sin(a)); }
+    txt(ctx, "roller", rx, ry - rr - 10, muted, "center");
+    // sensor
+    const has = st.present && st.p >= SENSOR - 0.02;
+    ctx.strokeStyle = has ? bad : muted; ctx.lineWidth = 2; if (!has) ctx.setLineDash([4, 4]);
+    ln(ctx, fx(SENSOR), floor - 0.17 * sc, fx(SENSOR), floor); ctx.setLineDash([]);
+    txt(ctx, has ? "beam blocked" : "beam break", fx(SENSOR), floor - 0.17 * sc - 10, has ? bad : muted, "center");
+    // piece
+    if (st.present) {
+      const pr = 0.06 * sc;
+      ctx.fillStyle = gold; ctx.beginPath(); ctx.arc(fx(st.p), floor - pr, pr, 0, 7); ctx.fill();
+      ctx.strokeStyle = ink; ctx.lineWidth = 1.5; ctx.stroke();
+    }
+    txt(ctx, "← outside the robot", 12, floor + 14, muted);
+    // meters
+    const mx = w - 150, my = 22;
+    const meter = (label, val, max, y, warn) => {
+      txt(ctx, label, mx, y, muted);
+      ctx.strokeStyle = lineC; ctx.lineWidth = 1; ctx.strokeRect(mx, y + 10, 130, 12);
+      ctx.fillStyle = warn ? bad : good; ctx.fillRect(mx, y + 10, 130 * Math.min(1, val / max), 12);
+    };
+    meter(`Current ${st.current.toFixed(0)} A`, st.current, 45, my, st.current >= 39);
+    meter(`Motor temp ${st.temp.toFixed(0)} °C`, st.temp - 25, 60, my + 44, st.temp > 60);
+    if (st.current >= 39) txt(ctx, "40 A current limit", mx, my + 92, bad);
+    if (st.stall > 0.3) { ctx.font = "bold 16px " + css("font-mono"); txt(ctx, "JAMMED", fx(BACK) - 20, floor - 0.17 * sc - 34, bad, "center"); }
+    S.readouts([
+      ["Volts", st.volts.toFixed(1) + " V"],
+      ["hasPiece", has ? "true" : "false"],
+      ["Current", st.current.toFixed(0) + " A", st.current >= 39 ? "bad" : ""],
+      ["Motor temperature", st.temp.toFixed(0) + " °C", st.temp > 60 ? "bad" : ""]]);
+  }
+  S.build(false);
+  robotLoop(S.canvas, step, draw);
+  REDRAWS.push(draw);
+}
+
+/* ===================== simulation 2: arm ===================== */
+const ARM_CODE = `// Runs every 20 ms inside the Arm subsystem.
+// angle and target are in degrees: 0 = level (straight out), 90 = straight up.
+// velocity is how fast the arm is moving, in degrees per second.
+double kP = 0.15;   // volts per degree of error
+double kD = 0.0;    // volts per (degree per second): damping
+double kG = 0.0;    // volts needed to hold the arm level against gravity
+
+double error = target - angle;
+double volts = kP * error - kD * velocity + kG * Math.cos(Math.toRadians(angle));
+`;
+const ARM = { J: 0.25, MGL: 2.7, KT: 1.5, KB: 0.6, FR: 0.05, MIN: -20, MAX: 110 };
+function armEval(ast, angle, vel, target) {
+  return JavaMini.run(ast, { globals: Object.assign({}, JavaMini.std), inputs: { angle: JavaMini.D(angle), velocity: JavaMini.D(vel), target: JavaMini.D(target) } });
+}
+function armPhysics(s, volts) {
+  const V = Math.max(-12, Math.min(12, volts)), d2r = Math.PI / 180;
+  for (let k = 0; k < 20; k++) {
+    const th = s.th * d2r, w = s.w * d2r;
+    const tau = ARM.KT * V - (ARM.KB + ARM.FR) * w - ARM.MGL * Math.cos(th);
+    const wn = w + tau / ARM.J * 0.001;
+    s.w = wn / d2r; s.th += s.w * 0.001;
+    if (s.th <= ARM.MIN) { s.th = ARM.MIN; if (s.w < 0) s.w = 0; }
+    if (s.th >= ARM.MAX) { s.th = ARM.MAX; if (s.w > 0) s.w = 0; s.hitTop = true; }
+  }
+}
+function armScenario(ast, target, secs) {
+  const s = { th: ARM.MIN, w: 0, hitTop: false };
+  let maxV = 0, maxTh = -1e9;
+  for (let i = 0; i < secs * 50; i++) {
+    const v = armEval(ast, s.th, s.w, target).volts;
+    maxV = Math.max(maxV, Math.abs(v));
+    armPhysics(s, v);
+    maxTh = Math.max(maxTh, s.th);
+  }
+  return { final: s.th, maxV, maxTh, hitTop: s.hitTop };
+}
+
+function simArm(host) {
+  const st = { th: ARM.MIN, w: 0, target: 45, volts: 0, vars: {} };
+  let hist = [], droopTimer = 0;
+  const S = buildCodeSim(host, {
+    id: "arm", title: "Arm control",
+    intro: "Write how many volts the arm motor gets. You can read angle, velocity and target, and you must set a double named volts. Math.cos, Math.toRadians, Math.min, Math.max and MathUtil.clamp(value, low, high) all work. The arm rests on a stop at −20° and can't go past 110°.",
+    aria: "Side view of an arm on a pivot with its target angle, and a graph of the angle and motor volts over time",
+    code: ARM_CODE,
+    check(ast) {
+      try { const v = armEval(ast, 0, 0, 45); if (typeof v.volts !== "number" || !isFinite(v.volts)) return { line: 0, message: "your code needs a double named volts" }; return null; }
+      catch (e) { return { line: e.line, message: e.message }; }
+    },
+    onBuilt(ast) {
+      try {
+        const r0 = armScenario(ast, 0, 5);
+        if (Math.abs(r0.final) < 1) S.complete("a-kg");
+        const r60 = armScenario(ast, 60, 5);
+        if (r60.maxTh - 60 < 2 && Math.abs(r60.final - 60) < 1) S.complete("a-damp");
+        const r110 = armScenario(ast, 110, 5);
+        if (r110.maxV <= 6.0001 && r110.maxV >= 5) S.complete("a-limit");
+        if (Math.abs(r110.final - 100) < 2 && r110.maxTh < 105 && !r110.hitTop) S.complete("a-soft");
+      } catch (e) { /* runtime problems show up when it runs live */ }
+    }
+  });
+  const pad = document.createElement("div"); pad.className = "pad-row";
+  const lab = document.createElement("span"); lab.className = "hint"; lab.textContent = "Target:"; pad.appendChild(lab);
+  const tbtns = [];
+  [-10, 0, 45, 60, 90, 110].forEach(tg => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "btn ghost"; b.id = "arm-target-" + String(tg).replace("-", "m");
+    b.textContent = tg + "°";
+    b.addEventListener("click", () => { st.target = tg; droopTimer = 0; paintT(); });
+    pad.appendChild(b); tbtns.push([tg, b]);
+  });
+  const drop = document.createElement("button"); drop.type = "button"; drop.className = "btn ghost"; drop.id = "arm-drop"; drop.textContent = "Drop the arm";
+  drop.addEventListener("click", () => { st.th = ARM.MIN; st.w = 0; hist = []; droopTimer = 0; });
+  pad.appendChild(drop);
+  S.extra.appendChild(pad);
+  const paintT = () => tbtns.forEach(([tg, b]) => { b.setAttribute("aria-pressed", String(tg === st.target)); b.style.background = tg === st.target ? css("gold-fill") : ""; b.style.color = tg === st.target ? "#142030" : ""; });
+  paintT();
+
+  function step() {
+    let v = 0;
+    const prog = S.program();
+    if (prog) {
+      try { const r = armEval(prog, st.th, st.w, st.target); st.vars = r; v = +r.volts || 0; }
+      catch (e) { S.runtimeError(e); }
+    }
+    st.volts = Math.max(-12, Math.min(12, v));
+    armPhysics(st, st.volts);
+    hist.push([st.th, st.target, st.volts]); if (hist.length > 300) hist.shift();
+    if (st.target === 0 && st.vars.kG === 0 && st.th < -3) { droopTimer += 0.02; if (droopTimer > 1.5) S.complete("a-droop"); } else droopTimer = 0;
+  }
+  function draw() {
+    const wide = S.canvas.parentElement.clientWidth >= 600;
+    const { w, h, ctx } = fit(S.canvas, wide ? 280 : 520);
+    const ink = css("ink"), muted = css("muted"), lineC = css("line"), gold = css("gold-fill"), blue = css("blue"), goldT = css("gold");
+    const pw = wide ? w * 0.45 : w, ph = wide ? h : 260;
+    const R = Math.min(pw * 0.62, ph * 0.62), px = Math.min(pw * 0.3, 90), py = ph * 0.62;
+    const at = (deg, r) => [px + r * Math.cos(deg * Math.PI / 180), py - r * Math.sin(deg * Math.PI / 180)];
+    ctx.strokeStyle = lineC; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(px, py, R + 8, -ARM.MAX * Math.PI / 180, -ARM.MIN * Math.PI / 180); ctx.stroke();
+    [ARM.MIN, ARM.MAX].forEach(d => { const [a, b] = at(d, R + 2), [c, e] = at(d, R + 16); ctx.strokeStyle = ink; ctx.lineWidth = 3; ln(ctx, a, b, c, e); });
+    txt(ctx, "0° level", px + R + 14, py, muted);
+    const [tx, ty] = at(st.target, R);
+    ctx.setLineDash([6, 4]); ctx.strokeStyle = goldT; ctx.lineWidth = 2; ln(ctx, px, py, tx, ty); ctx.setLineDash([]);
+    txt(ctx, "target " + st.target + "°", tx + 6, ty - 8, goldT);
+    const [ax, ay] = at(st.th, R);
+    ctx.strokeStyle = ink; ctx.lineWidth = 8; ln(ctx, px, py, ax, ay);
+    ctx.fillStyle = gold; ctx.beginPath(); ctx.arc(ax, ay, 10, 0, 7); ctx.fill(); ctx.strokeStyle = ink; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = ink; ctx.beginPath(); ctx.arc(px, py, 6, 0, 7); ctx.fill();
+    txt(ctx, "gravity ↓", px - 6, py + 30, muted, "center");
+    // graph
+    const gx0 = wide ? pw + 48 : 48, gx1 = w - 40, gy0 = wide ? 24 : ph + 24, gy1 = h - 24;
+    const yA = a => gy1 - (a - ARM.MIN) / (ARM.MAX - ARM.MIN) * (gy1 - gy0), yV = v => (gy0 + gy1) / 2 - v / 12 * (gy1 - gy0) / 2;
+    const xx = i => gx0 + (i / 299) * (gx1 - gx0), off = 300 - hist.length;
+    ctx.strokeStyle = lineC; ctx.lineWidth = 1; ctx.strokeRect(gx0, gy0, gx1 - gx0, gy1 - gy0);
+    [0, 45, 90].forEach(a => { ln(ctx, gx0, yA(a), gx1, yA(a)); txt(ctx, a + "°", gx0 - 6, yA(a), muted, "right"); });
+    txt(ctx, "+12 V", gx1 + 4, gy0 + 6, blue); txt(ctx, "−12 V", gx1 + 4, gy1 - 6, blue);
+    txt(ctx, "last 6 s: angle (gold), target (dashed), volts (blue)", gx0, gy0 - 12, muted);
+    const line = (k, color, width, map, dash) => {
+      if (hist.length < 2) return;
+      ctx.strokeStyle = color; ctx.lineWidth = width; if (dash) ctx.setLineDash(dash); ctx.beginPath();
+      hist.forEach((p, i) => i ? ctx.lineTo(xx(off + i), map(p[k])) : ctx.moveTo(xx(off + i), map(p[k]))); ctx.stroke(); ctx.setLineDash([]);
+    };
+    line(2, blue, 1.5, yV); line(1, muted, 1.5, yA, [5, 4]); line(0, gold, 2.5, yA);
+    S.readouts([
+      ["Angle", st.th.toFixed(1) + "°"],
+      ["Target", st.target + "°"],
+      ["Error", (st.target - st.th).toFixed(1) + "°", Math.abs(st.target - st.th) < 1 ? "good" : ""],
+      ["Volts", st.volts.toFixed(2) + " V", Math.abs(st.volts) >= 11.99 ? "bad" : ""]]);
+  }
+  S.build(false);
+  robotLoop(S.canvas, step, draw);
+  REDRAWS.push(draw);
+}
+
+Lab.start({
+  key: "cg-subsystems-lab-v1",
+  lessons: SUB_LESSONS,
+  challenges: SUB_CHALLENGES,
+  sims: { intake: simIntake, arm: simArm }
+});
+</script>
+</body>
+</html>

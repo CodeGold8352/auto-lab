@@ -188,6 +188,12 @@ input:focus-visible, textarea:focus-visible { outline: 2px solid var(--gold); ou
 .done-card p { margin: 0; }
 .done-card ul { margin: 0; padding-left: 20px; }
 
+/* Page switcher (Auto / Teleop / Subsystems) */
+.labnav { display: flex; flex-wrap: wrap; gap: 6px; }
+.labnav a { font-size: 13px; text-decoration: none; color: var(--ink); border: 1px solid var(--line); border-radius: 99px; padding: 3px 10px; }
+.labnav a[aria-current="page"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.labnav a:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
 /* Simulations */
 .sims { display: grid; gap: 14px; }
 .sim { border: 1px solid var(--blue); border-radius: 10px; padding: 14px 18px; display: grid; gap: 12px; background: var(--surface); min-width: 0; }
@@ -227,6 +233,7 @@ input:focus-visible, textarea:focus-visible { outline: 2px solid var(--gold); ou
       <span class="team">FRC 8352 · CODE Gold</span>
       <span class="name">Auto Lab</span>
     </div>
+    <nav class="labnav" aria-label="Labs"><a href="./" aria-current="page">Auto Lab</a><a href="teleop.html">Teleop Lab</a><a href="subsystems.html">Subsystems Lab</a></nav>
     <div class="score" aria-live="polite">
       <div class="big"><span id="scoreRight">0</span> <small>/ <span id="scoreTotal">0</span> correct</small></div>
       <div class="bar"><i id="scoreBar"></i></div>
