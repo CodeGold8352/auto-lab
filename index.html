@@ -20,6 +20,10 @@
   --bad: #ad2a20;
   --bad-soft: #fbe9e7;
   --info-soft: #e8eef6;
+  --blue: #2156c0;
+  --blue-soft: #e5edfb;
+  --red: #bf3027;
+  --red-soft: #fae6e4;
   --code-bg: #101b28;
   --code-fg: #d6e1ec;
   --code-dim: #7f93a8;
@@ -35,6 +39,7 @@
     --bg: #0b121b; --surface: #121c28; --ink: #e3eaf2; --muted: #93a2b4; --line: #233144;
     --gold: #f2c14e; --gold-fill: #f2b705; --gold-soft: #2a2410;
     --good: #5cc992; --good-soft: #10291d; --bad: #ff8277; --bad-soft: #2e1513; --info-soft: #16233a;
+    --blue: #7fa8ff; --blue-soft: #15233d; --red: #ff7f75; --red-soft: #3a1816;
     --code-bg: #070e17; --code-fg: #d6e1ec; --code-dim: #6f8399; --code-num: #f2c14e; --code-str: #8fd3a8; --code-kw: #8cb8ff;
     color-scheme: dark;
   }
@@ -43,6 +48,7 @@
   --bg: #0b121b; --surface: #121c28; --ink: #e3eaf2; --muted: #93a2b4; --line: #233144;
   --gold: #f2c14e; --gold-fill: #f2b705; --gold-soft: #2a2410;
   --good: #5cc992; --good-soft: #10291d; --bad: #ff8277; --bad-soft: #2e1513; --info-soft: #16233a;
+  --blue: #7fa8ff; --blue-soft: #15233d; --red: #ff7f75; --red-soft: #3a1816;
   --code-bg: #070e17; --code-fg: #d6e1ec; --code-dim: #6f8399; --code-num: #f2c14e; --code-str: #8fd3a8; --code-kw: #8cb8ff;
   color-scheme: dark;
 }
@@ -181,6 +187,37 @@ input:focus-visible, textarea:focus-visible { outline: 2px solid var(--gold); ou
 .done-card h2 { font-family: var(--font-display); font-size: 28px; margin: 0; }
 .done-card p { margin: 0; }
 .done-card ul { margin: 0; padding-left: 20px; }
+
+/* Simulations */
+.sims { display: grid; gap: 14px; }
+.sim { border: 1px solid var(--blue); border-radius: 10px; padding: 14px 18px; display: grid; gap: 12px; background: var(--surface); min-width: 0; }
+.sim h3 { margin: 0; font-family: var(--font-display); font-size: 20px; font-weight: 600; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.sim h3 .tag { font-family: var(--font-mono); font-size: 11px; font-weight: 400; color: var(--blue); text-transform: uppercase; letter-spacing: .06em; }
+.sim .need { font-size: 14px; color: var(--muted); margin: 0; }
+.sim-controls { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px 20px; }
+.ctl { display: grid; gap: 4px; font-size: 14px; min-width: 0; }
+.ctl label { display: flex; justify-content: space-between; gap: 8px; }
+.ctl output { font-family: var(--font-mono); font-size: 13px; color: var(--gold); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ctl input[type="range"] { width: 100%; accent-color: var(--gold-fill); }
+.ctl select { font: inherit; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); max-width: 100%; }
+.ctl-check { align-content: end; }
+.ctl-check label { justify-content: flex-start; align-items: center; cursor: pointer; }
+.ctl-check input { accent-color: var(--gold-fill); width: 16px; height: 16px; flex: none; }
+.ctl select:focus-visible, .ctl input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.sim-canvas { min-width: 0; }
+.sim-canvas canvas { display: block; width: 100%; border-radius: 8px; background: var(--bg); }
+.readouts { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.ro { background: var(--bg); border-radius: 8px; padding: 8px 10px; display: grid; gap: 2px; min-width: 0; }
+.ro span { font-size: 12px; color: var(--muted); }
+.ro b { font-family: var(--font-mono); font-size: 15px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.ro.good b { color: var(--good); }
+.ro.bad b { color: var(--bad); }
+.challenges { display: grid; gap: 6px; }
+.challenges ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.challenges li { display: grid; grid-template-columns: 22px 1fr; gap: 8px; font-size: 15px; }
+.challenges .mark { font-family: var(--font-mono); color: var(--muted); }
+.challenges li.done .mark { color: var(--good); font-weight: 700; }
+.challenges li.done span:last-child { color: var(--muted); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
 </style>
 
@@ -195,6 +232,7 @@ input:focus-visible, textarea:focus-visible { outline: 2px solid var(--gold); ou
       <div class="bar"><i id="scoreBar"></i></div>
       <div class="sub" id="scoreSub">0 of 0 questions answered</div>
       <div class="sub" id="taskSub">0 of 0 hands-on tasks done</div>
+      <div class="sub" id="simSub">0 of 0 sim challenges done</div>
     </div>
     <ul class="toc" id="toc"></ul>
     <button class="reset" id="resetBtn" type="button">Start over</button>
@@ -210,6 +248,7 @@ input:focus-visible, textarea:focus-visible { outline: 2px solid var(--gold); ou
         <div><b>Find it in the code</b><span>Open the repo in VS Code and look the answer up. Ctrl+P opens a file, Ctrl+F searches it.</span></div>
         <div><b>Hint first</b><span>Stuck? Open the hint. It shows how to start, not the answer. Hints don't cost points.</span></div>
         <div><b>Worked solution</b><span>After you answer, you get the steps. Check your reasoning, not just your answer.</span></div>
+        <div><b>Simulate it</b><span>Move the sliders and watch what changes. Simplified models of our robot, built to show the idea. Challenges check themselves off.</span></div>
       </div>
     </section>
     <div class="lessons" id="lessons"></div>
@@ -258,7 +297,7 @@ const LESSONS = [
   ]
 },
 {
-  id: "autobuilder", title: "Connecting PathPlanner to the drivetrain", where: "subsystems/CommandSwerveDrivetrain.java · configureAutoBuilder()",
+  id: "autobuilder", sims: ["pid"], title: "Connecting PathPlanner to the drivetrain", where: "subsystems/CommandSwerveDrivetrain.java · configureAutoBuilder()",
   body: `
 <p>PathPlanner doesn't know anything about our robot until we tell it. <code>AutoBuilder.configure(...)</code> hands it everything it needs: how to read where the robot is, how to reset that position, and how to drive.</p>
 <p>The <b>path PID</b> fixes mistakes while following. A P controller is just: <b>correction = kP × error</b>. If the robot drifts off the path, the translation gain (10) asks for extra speed back toward it. The rotation gain (7) does the same for heading.</p>
@@ -350,7 +389,7 @@ SmartDashboard.putData("Auto Mode", autoChooser);`,
   ]
 },
 {
-  id: "square", title: "The Square Test", where: "pathplanner/autos/Square Test.auto",
+  id: "square", sims: ["square"], title: "The Square Test", where: "pathplanner/autos/Square Test.auto",
   body: `
 <p>The Square Test is a tuning tool, not a match auto. It drives four straight 2 m sides at 1.5 m/s, keeps facing 0° the whole time, and stops at each corner. Then it should be back exactly where it started.</p>
 <p>We run it 5 times and measure how far from the start mark it ends up each time. That tells us how much the robot's position estimate drifts, and the pattern tells us why.</p>
@@ -389,7 +428,7 @@ SmartDashboard.putData("Auto Mode", autoChooser);`,
   ]
 },
 {
-  id: "vision", title: "Vision: correcting position with AprilTags", where: "subsystems/Vision.java · periodic()",
+  id: "vision", sims: ["fusion"], title: "Vision: correcting position with AprilTags", where: "subsystems/Vision.java · periodic()",
   body: `
 <p>Wheel odometry drifts a little every second. The Limelight 4 fixes that: it sees AprilTags, knows where each tag is on the field, and works out where the robot is (<b>MegaTag2</b>).</p>
 <p>We don't just replace our position with the camera's. We <b>blend</b> it in with <code>addVisionMeasurement</code>. The <b>standard deviation</b> says how much to trust it: bigger number, trust it less. We use 0.7 m for x and y, and a huge number for heading so vision never changes it; the Pigeon gyro is better at heading.</p>
@@ -448,7 +487,7 @@ if (accepted) {
   ]
 },
 {
-  id: "limelight", title: "Setting up a Limelight", where: "Limelight web UI · VisionConstants.java",
+  id: "limelight", sims: ["mount"], title: "Setting up a Limelight", where: "Limelight web UI · VisionConstants.java",
   body: `
 <p>Before the code can use a Limelight, the camera itself has to be set up. Each Limelight has its own web page where you change its settings (port <code>5801</code>, for example <code>http://limelight.local:5801</code>).</p>
 <p><b>1. A unique name and address.</b> The code finds each camera by its <b>hostname</b>, so every Limelight needs its own. Give each a <b>static IP</b> on our team network too. FRC team networks are <code>10.TE.AM.x</code>; for 8352 that's <code>10.83.52.x</code>.</p>
@@ -534,7 +573,7 @@ if (accepted) {
   ]
 },
 {
-  id: "drivetospot", title: "Drive-to-spot in teleop", where: "RobotContainer.java · branch teleop-drive-to-pose",
+  id: "drivetospot", sims: ["flip"], title: "Drive-to-spot in teleop", where: "RobotContainer.java · branch teleop-drive-to-pose",
   body: `
 <p>Holding the <b>right bumper</b> makes the robot plan a path, right then, from wherever it is to the Square Test start (2, 3) facing 0°, and drive it. Nobody drew that path. PathPlanner's <b>pathfinding</b> works it out, steering around obstacles in <code>navgrid.json</code>.</p>
 <p>It's capped at 1.5 m/s for first tests. And because it's bound with <code>whileTrue</code>, letting go of the bumper stops it and gives the driver control back.</p>`,
@@ -876,6 +915,7 @@ function refresh(q) {
 
 function renderAll() {
   const host = document.getElementById("lessons"); host.innerHTML = "";
+  const pendingSims = []; REDRAWS.length = 0;
   const toc = document.getElementById("toc"); toc.innerHTML = "";
   LESSONS.forEach((l, li) => {
     const num = String(li + 1).padStart(2, "0");
@@ -891,6 +931,7 @@ function renderAll() {
       <div class="prose">${l.body}</div>
       ${fig}
       ${l.code ? `<pre><code>${hl(l.code)}</code></pre>` : ""}`;
+    if (l.sims) l.sims.forEach(name => { const hs = document.createElement("div"); hs.className = "sims"; sec.appendChild(hs); pendingSims.push([name, hs]); });
     if (l.tasks && l.tasks.length) {
       const tw = document.createElement("div"); tw.className = "tasks";
       tw.innerHTML = `<span class="block-label">Hands-on</span>`;
@@ -907,6 +948,7 @@ function renderAll() {
     item.innerHTML = `<a href="#${l.id}"><span class="n">${num}</span><span>${esc(l.title)}</span><span class="c" id="toc-${l.id}"></span></a>`;
     toc.appendChild(item);
   });
+  pendingSims.forEach(([name, hs]) => SIMS[name](hs));
   updateScore();
 }
 
@@ -919,6 +961,8 @@ function updateScore() {
   document.getElementById("scoreTotal").textContent = g.length;
   document.getElementById("scoreSub").textContent = `${answered} of ${qs.length} questions answered`;
   document.getElementById("taskSub").textContent = `${tdone} of ${tasks.length} hands-on tasks done`;
+  const chs = allChallenges(), chDone = chs.filter(([cid]) => state["ch-" + cid]).length;
+  document.getElementById("simSub").textContent = `${chDone} of ${chs.length} sim challenges done`;
   document.getElementById("scoreBar").style.width = (answered / qs.length * 100) + "%";
 
   const list = document.getElementById("doneList"); list.innerHTML = "";
@@ -961,7 +1005,511 @@ resetBtn.addEventListener("click", () => {
   resetBtn.classList.remove("armed"); resetBtn.textContent = "Start over";
 });
 
+/* ---------- simulations ---------- */
+const css = n => getComputedStyle(document.documentElement).getPropertyValue("--" + n).trim();
+const REDUCE = !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+const REDRAWS = [];
+function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function gauss(r) { let u = 0, v = 0; while (u === 0) u = r(); while (v === 0) v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+function fit(canvas, h) {
+  const w = Math.max(260, canvas.parentElement.clientWidth);
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+  canvas.style.height = h + "px";
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h);
+  ctx.font = "12px " + css("font-mono"); ctx.textBaseline = "middle"; ctx.lineJoin = "round"; ctx.lineCap = "round";
+  return { w, h, ctx };
+}
+function ln(ctx, x1, y1, x2, y2) { ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); }
+function txt(ctx, s, x, y, color, align) { ctx.fillStyle = color; ctx.textAlign = align || "left"; ctx.fillText(s, x, y); }
+const sgn = n => (n > 0 ? "+" : "") + n;
+
+const SIM_CHALLENGES = {
+  pid: [
+    ["pid-zero", "Turn on the hold-back and set kP to 0. Where does the robot stop, and why?"],
+    ["pid-mass", "Make the settings.json mass match the real mass. What happens to the biggest error?"],
+    ["pid-wobble", "Raise kP until the robot wobbles back and forth at the end."],
+    ["pid-good", "With the hold-back on, find a kP that ends within 1 cm, overshoots less than 1 cm, and doesn't wobble. (Bigger isn't always better.)"]],
+  square: [
+    ["sq-wheel", "Set the wheel size error to +3% (slip 0, drift 0). Does the robot end on the mark? Now read Side 1."],
+    ["sq-slip", "Set slip to 3 cm. Are the 5 end spots together or scattered?"],
+    ["sq-drift", "Find the setting that makes all 5 runs end in nearly the same wrong spot."]],
+  fusion: [
+    ["fu-unplug", "Unplug the camera. What happens to the gold line?"],
+    ["fu-spin", "Set the spin rate to 800°/s. How many readings get used?"],
+    ["fu-far", "Put the tag 5 m away. Try Fixed 0.7, then the distance formula. What does the formula do differently?"],
+    ["fu-best", "With the tag 2 m or farther, get the error with vision under 2 cm at 8 s."]],
+  mount: [
+    ["mo-zero", "Set forward to 0, like the old code did. How far off is the robot?"],
+    ["mo-yaw", "Set yaw to 2°. Which distance fails first, and why?"],
+    ["mo-only3", "Find a mistake that passes at 1 m and 2 m but fails at 3 m."]],
+  flip: [
+    ["fl-center", "Put the blue target at the center of the field (about 8.3, 4.0). Where does red go?"],
+    ["fl-face", "Set the heading to 90°. Which way does the red robot face?"]]
+};
+const allChallenges = () => Object.values(SIM_CHALLENGES).flat();
+
+function buildSim(host, cfg) {
+  const el = document.createElement("div"); el.className = "sim";
+  el.innerHTML = `<h3><span class="tag">Simulate it</span>${esc(cfg.title)}</h3><p class="need">${esc(cfg.intro)}</p>`;
+  const ctr = document.createElement("div"); ctr.className = "sim-controls";
+  const inputs = {};
+  cfg.controls.forEach(c => {
+    const id = `sim-${cfg.id}-${c.id}`;
+    const w = document.createElement("div"); w.className = "ctl";
+    if (c.type === "select") w.innerHTML = `<label for="${id}">${esc(c.label)}</label><select id="${id}">${c.options.map(o => `<option value="${o[0]}">${esc(o[1])}</option>`).join("")}</select>`;
+    else if (c.type === "check") { w.classList.add("ctl-check"); w.innerHTML = `<label for="${id}"><input type="checkbox" id="${id}"><span>${esc(c.label)}</span></label>`; }
+    else w.innerHTML = `<label for="${id}"><span>${esc(c.label)}</span><output id="${id}-out" for="${id}"></output></label><input type="range" id="${id}" min="${c.min}" max="${c.max}" step="${c.step}" value="${c.value}">`;
+    ctr.appendChild(w);
+    const e = w.querySelector("select, input");
+    if (c.type === "select") e.value = c.value;
+    if (c.type === "check") e.checked = !!c.value;
+    inputs[c.id] = { e, c };
+  });
+  el.appendChild(ctr);
+  const cw = document.createElement("div"); cw.className = "sim-canvas";
+  const canvas = document.createElement("canvas");
+  canvas.setAttribute("role", "img"); canvas.setAttribute("aria-label", cfg.aria);
+  cw.appendChild(canvas); el.appendChild(cw);
+  const ro = document.createElement("div"); ro.className = "readouts"; ro.setAttribute("aria-live", "polite"); el.appendChild(ro);
+  const buttons = {};
+  if (cfg.buttons) {
+    const row = document.createElement("div"); row.className = "row";
+    cfg.buttons.forEach(([label, key, ghost]) => {
+      const b = document.createElement("button"); b.type = "button"; b.className = "btn" + (ghost ? " ghost" : "");
+      b.id = `sim-${cfg.id}-${key}`; b.textContent = label; row.appendChild(b); buttons[key] = b;
+    });
+    el.appendChild(row);
+  }
+  const chWrap = document.createElement("div"); chWrap.className = "challenges";
+  chWrap.innerHTML = `<span class="block-label">Challenges</span>`;
+  const ul = document.createElement("ul");
+  SIM_CHALLENGES[cfg.id].forEach(([cid, text]) => {
+    const li = document.createElement("li"); li.id = "ch-" + cid;
+    li.innerHTML = `<span class="mark" aria-hidden="true"></span><span>${esc(text)}</span>`;
+    ul.appendChild(li);
+  });
+  chWrap.appendChild(ul); el.appendChild(chWrap);
+  host.appendChild(el);
+  const paint = () => SIM_CHALLENGES[cfg.id].forEach(([cid]) => {
+    const li = document.getElementById("ch-" + cid), d = !!state["ch-" + cid];
+    li.classList.toggle("done", d); li.querySelector(".mark").textContent = d ? "✓" : "○";
+  });
+  const outs = () => { for (const k in inputs) { const { e, c } = inputs[k]; if (!c.type) document.getElementById(e.id + "-out").textContent = (c.fmt ? c.fmt(+e.value) : e.value) + (c.unit ? " " + c.unit : ""); } };
+  paint(); outs();
+  return {
+    canvas, buttons,
+    vals() { const o = {}; for (const k in inputs) { const { e, c } = inputs[k]; o[k] = c.type === "check" ? e.checked : c.type === "select" ? e.value : parseFloat(e.value); } return o; },
+    onInput(fn) { for (const k in inputs) inputs[k].e.addEventListener("input", () => { outs(); fn(); }); },
+    readouts(rows) { ro.innerHTML = rows.map(([l, v, cls]) => `<div class="ro${cls ? " " + cls : ""}"><span>${esc(l)}</span><b>${esc(v)}</b></div>`).join(""); },
+    complete(cid) { if (state["ch-" + cid]) return; state["ch-" + cid] = true; save(); paint(); updateScore(); }
+  };
+}
+
+/* --- 1. Path PID --- */
+function pidProfile(t) {
+  const vmax = 1.5, amax = 3, D = 2, ta = vmax / amax, da = 0.5 * amax * ta * ta, tc = (D - 2 * da) / vmax, T = 2 * ta + tc;
+  if (t <= 0) return [0, 0, 0];
+  if (t < ta) return [0.5 * amax * t * t, amax * t, amax];
+  if (t < ta + tc) return [da + vmax * (t - ta), vmax, 0];
+  if (t < T) { const u = T - t; return [D - 0.5 * amax * u * u, amax * u, -amax]; }
+  return [D, 0, 0];
+}
+function pidRun(v) {
+  // Velocity loop (Kv) with a two-loop (40 ms) delay between sensing and the motors acting;
+  // feedforward force = configured mass × path acceleration.
+  const dt = 0.02, N = 150, LB = 0.4536, Kv = 450, mc = v.mconf * LB, mr = v.mreal * LB;
+  let x = 0, vel = 0; const d = [], queue = [[0, 0], [0, 0]];
+  for (let i = 0; i <= N; i++) {
+    const t = i * dt, [xr, vr, ar] = pidProfile(t);
+    d.push({ t, x, xr, err: x - xr });
+    queue.push([vr + v.kp * (xr - x), mc * ar]);
+    const [vcmd, ff] = queue.shift();
+    const F = Math.max(-250, Math.min(250, ff + Kv * (vcmd - vel)));
+    vel += F / mr * dt;
+    if (v.bump && i >= 50 && i < 62) vel = Math.min(vel, 0.3);
+    x += vel * dt;
+  }
+  let crossings = 0, last = 0;
+  d.forEach(p => { if (p.t < 1.9) return; const s = Math.abs(p.err) > 0.002 ? Math.sign(p.err) : 0; if (s && last && s !== last) crossings++; if (s) last = s; });
+  return {
+    d, wobble: crossings >= 2,
+    maxErr: Math.max(...d.map(p => Math.abs(p.err))) * 100,
+    final: d[N].err * 100,
+    over: Math.max(0, Math.max(...d.map(p => p.x)) - 2) * 100
+  };
+}
+function simPid(host) {
+  const S = buildSim(host, {
+    id: "pid", title: "Path following with PID",
+    intro: "A simplified robot drives one 2 m side of the Square Test at up to 1.5 m/s. The graph updates as you move a slider; press Play to watch it drive.",
+    aria: "A robot driving along a 2 meter line toward a target, and a graph of how far ahead or behind the path it is over 3 seconds",
+    controls: [
+      { id: "kp", label: "Translation kP", min: 0, max: 40, step: 1, value: 10 },
+      { id: "mconf", label: "Mass in settings.json", min: 10, max: 80, step: 5, value: 30, unit: "lb" },
+      { id: "mreal", label: "Real robot mass", min: 20, max: 80, step: 5, value: 50, unit: "lb" },
+      { id: "bump", type: "check", label: "Another robot holds us back at 1 s", value: false }],
+    buttons: [["Play", "play"]]
+  });
+  let res = null, upto = 150, raf = 0;
+  function draw() {
+    if (!res) return;
+    const { w, h, ctx } = fit(S.canvas, 290);
+    const ink = css("ink"), muted = css("muted"), lineC = css("line"), gold = css("gold-fill"), goldT = css("gold");
+    const L = 30, R = w - 30, tx = m => L + (m / 2.2) * (R - L), ty = 46;
+    ctx.strokeStyle = lineC; ctx.lineWidth = 2; ln(ctx, L, ty, R, ty);
+    [0, 1, 2].forEach(m => { ctx.lineWidth = 1; ctx.strokeStyle = muted; ln(ctx, tx(m), ty + 10, tx(m), ty + 14); txt(ctx, m + " m", tx(m), ty + 24, muted, "center"); });
+    ctx.setLineDash([4, 4]); ctx.strokeStyle = goldT; ctx.lineWidth = 1.5; ln(ctx, tx(2), ty - 20, tx(2), ty + 10); ctx.setLineDash([]);
+    txt(ctx, "target", tx(2), 14, goldT, "center");
+    txt(ctx, "□ where the path says   ■ robot", L, 14, muted);
+    const p = res.d[upto];
+    ctx.strokeStyle = muted; ctx.lineWidth = 1.5; ctx.strokeRect(tx(p.xr) - 9, ty - 9, 18, 18);
+    ctx.fillStyle = gold; ctx.fillRect(tx(p.x) - 8, ty - 8, 16, 16);
+    ctx.strokeStyle = ink; ctx.lineWidth = 1; ctx.strokeRect(tx(p.x) - 8, ty - 8, 16, 16);
+    const X0 = 58, X1 = w - 14, Y0 = 104, Y1 = h - 24, mid = (Y0 + Y1) / 2;
+    const span = Math.min(60, Math.max(2, Math.ceil(res.maxErr)));
+    const yy = e => Math.max(Y0, Math.min(Y1, mid - (e / span) * (Y1 - Y0) / 2)), xx = t => X0 + (t / 3) * (X1 - X0);
+    ctx.fillStyle = css("good-soft"); ctx.fillRect(X0, yy(1), X1 - X0, yy(-1) - yy(1));
+    ctx.strokeStyle = lineC; ctx.lineWidth = 1; ln(ctx, X0, Y0, X0, Y1); ln(ctx, X0, mid, X1, mid);
+    txt(ctx, "+" + span + " cm", X0 - 6, Y0, muted, "right"); txt(ctx, "0", X0 - 6, mid, muted, "right"); txt(ctx, "−" + span + " cm", X0 - 6, Y1, muted, "right");
+    [0, 1, 2, 3].forEach(t => txt(ctx, t + " s", xx(t), Y1 + 13, muted, "center"));
+    txt(ctx, "error: + ahead, − behind · green = within 1 cm", X0, Y0 - 14, muted);
+    ctx.strokeStyle = gold; ctx.lineWidth = 2.5; ctx.beginPath();
+    res.d.slice(0, upto + 1).forEach((q, i) => { const X = xx(q.t), Y = yy(q.err * 100); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); });
+    ctx.stroke();
+  }
+  function report(check) {
+    const v = S.vals();
+    S.readouts([
+      ["Biggest error", res.maxErr.toFixed(1) + " cm"],
+      ["Error at the end", sgn(+res.final.toFixed(1)) + " cm", Math.abs(res.final) < 1 ? "good" : "bad"],
+      ["Overshoot past 2 m", res.over.toFixed(1) + " cm", res.over < 1 ? "good" : "bad"],
+      ["Wobbles at the end?", res.wobble ? "Yes" : "No", res.wobble ? "bad" : "good"]]);
+    if (!check) return;
+    if (v.kp === 0 && v.bump) S.complete("pid-zero");
+    if (v.mconf === v.mreal) S.complete("pid-mass");
+    if (res.wobble) S.complete("pid-wobble");
+    if (v.bump && v.kp > 0 && Math.abs(res.final) < 1 && res.over < 1 && !res.wobble) S.complete("pid-good");
+  }
+  function compute(check) { cancelAnimationFrame(raf); res = pidRun(S.vals()); upto = 150; draw(); report(check); }
+  S.onInput(() => compute(true));
+  S.buttons.play.addEventListener("click", () => {
+    compute(true);
+    if (REDUCE) return;
+    const t0 = performance.now();
+    const step = now => { upto = Math.min(150, Math.floor((now - t0) / 20)); draw(); if (upto < 150) raf = requestAnimationFrame(step); };
+    upto = 0; draw(); raf = requestAnimationFrame(step);
+  });
+  REDRAWS.push(draw);
+  compute(false);
+}
+
+/* --- 2. Square Test drift --- */
+function sqRun(v, seed) {
+  const r = rng(seed), e = v.wheel / 100, runs = [];
+  for (let k = 0; k < 5; k++) {
+    let p = [2, 3]; const pts = [p.slice()];
+    for (let s = 0; s < 4; s++) {
+      const a = (s * 90 + v.drift * (s + 1)) * Math.PI / 180;
+      const len = 2 / (1 + e) + gauss(r) * v.slip / 100, lat = gauss(r) * v.slip / 200;
+      p = [p[0] + len * Math.cos(a) - lat * Math.sin(a), p[1] + len * Math.sin(a) + lat * Math.cos(a)];
+      pts.push(p.slice());
+    }
+    runs.push(pts);
+  }
+  const ends = runs.map(pts => [(pts[4][0] - 2) * 100, (pts[4][1] - 3) * 100]);
+  const mx = ends.reduce((s, q) => s + q[0], 0) / 5, my = ends.reduce((s, q) => s + q[1], 0) / 5;
+  const spread = Math.sqrt(ends.reduce((s, q) => s + (q[0] - mx) ** 2 + (q[1] - my) ** 2, 0) / 5);
+  const side1 = Math.hypot(runs[0][1][0] - 2, runs[0][1][1] - 3);
+  return { runs, ends, mx, my, spread, side1 };
+}
+function simSquare(host) {
+  const S = buildSim(host, {
+    id: "square", title: "Square Test, 5 runs",
+    intro: "Each setting is one kind of mistake. Change one at a time and compare the paths and where the 5 runs end. The tape mark is the start spot (2, 3).",
+    aria: "Top view of 5 Square Test runs, and a zoomed view of where each run ended compared with the tape mark",
+    controls: [
+      { id: "wheel", label: "Wheel size error in the code", min: -5, max: 5, step: 0.5, value: 0, unit: "%", fmt: sgn },
+      { id: "slip", label: "Wheel slip (random)", min: 0, max: 5, step: 0.5, value: 0, unit: "cm/side" },
+      { id: "drift", label: "Gyro drift", min: 0, max: 3, step: 0.5, value: 0, unit: "°/side" }],
+    buttons: [["Run 5 more times", "rerun", true]]
+  });
+  let seed = 7, res = null;
+  function draw() {
+    if (!res) return;
+    const wide = S.canvas.parentElement.clientWidth >= 560;
+    const { w, h, ctx } = fit(S.canvas, wide ? 300 : 580);
+    const ink = css("ink"), muted = css("muted"), lineC = css("line"), gold = css("gold-fill"), goldT = css("gold"), good = css("good");
+    const pw = wide ? w / 2 : w, ph = wide ? h : h / 2;
+    {
+      const sz = Math.min(pw - 50, ph - 56), ox = (pw - sz) / 2 + 10, oy = 30;
+      const fx = x => ox + (x - 1.5) / 3 * sz, fy = y => oy + sz - (y - 2.5) / 3 * sz;
+      txt(ctx, "Top view (m)", 10, 12, muted);
+      ctx.strokeStyle = lineC; ctx.lineWidth = 1;
+      for (let g = 1.5; g <= 4.501; g += 0.5) { ln(ctx, fx(g), fy(2.5), fx(g), fy(5.5)); ln(ctx, fx(1.5), fy(g), fx(4.5), fy(g)); }
+      [2, 3, 4].forEach(g => txt(ctx, String(g), fx(g), fy(2.5) + 12, muted, "center"));
+      [3, 4, 5].forEach(g => txt(ctx, String(g), fx(1.5) - 6, fy(g), muted, "right"));
+      ctx.setLineDash([5, 4]); ctx.strokeStyle = goldT; ctx.lineWidth = 1.5;
+      ctx.strokeRect(fx(2), fy(5), fx(4) - fx(2), fy(3) - fy(5)); ctx.setLineDash([]);
+      ctx.strokeStyle = ink; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.5;
+      res.runs.forEach(pts => { ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(fx(p[0]), fy(p[1])) : ctx.moveTo(fx(p[0]), fy(p[1]))); ctx.stroke(); });
+      ctx.globalAlpha = 1; ctx.fillStyle = gold;
+      res.runs.forEach(pts => { const p = pts[4]; ctx.beginPath(); ctx.arc(fx(p[0]), fy(p[1]), 3.5, 0, 7); ctx.fill(); });
+    }
+    {
+      const bx = wide ? pw : 0, by = wide ? 0 : ph;
+      const R = Math.min(pw - 40, ph - 50) / 2, cx = bx + pw / 2, cy = by + 30 + R;
+      const maxD = Math.max(...res.ends.map(q => Math.hypot(q[0], q[1])));
+      const span = Math.max(10, Math.ceil(maxD * 1.25)), sc = R / span;
+      txt(ctx, "End spots vs. the tape mark (cm)", bx + 10, by + 12, muted);
+      ctx.strokeStyle = lineC; ctx.lineWidth = 1; ctx.strokeRect(cx - R, cy - R, 2 * R, 2 * R);
+      ln(ctx, cx - R, cy, cx + R, cy); ln(ctx, cx, cy - R, cx, cy + R);
+      ctx.strokeStyle = good; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(cx, cy, 5 * sc, 0, 7); ctx.stroke();
+      txt(ctx, "5 cm", cx + 5 * sc * 0.75 + 4, cy - 5 * sc * 0.75 - 6, good);
+      txt(ctx, "±" + span + " cm", cx + R - 4, cy + R - 10, muted, "right");
+      ctx.strokeStyle = ink; ctx.lineWidth = 2; ln(ctx, cx - 6, cy - 6, cx + 6, cy + 6); ln(ctx, cx - 6, cy + 6, cx + 6, cy - 6);
+      res.ends.forEach(q => { const X = cx + q[0] * sc, Y = cy - q[1] * sc; ctx.fillStyle = gold; ctx.beginPath(); ctx.arc(X, Y, 5, 0, 7); ctx.fill(); ctx.strokeStyle = ink; ctx.lineWidth = 1; ctx.stroke(); });
+      if (res.spread < 0.3) { const q = res.ends[0]; txt(ctx, "all 5", cx + q[0] * sc + 9, cy - q[1] * sc - 8, ink); }
+      else res.ends.forEach((q, i) => txt(ctx, String(i + 1), cx + q[0] * sc + 8, cy - q[1] * sc - 7, ink));
+    }
+  }
+  function compute(check) {
+    const v = S.vals(); res = sqRun(v, seed); draw();
+    const avg = Math.hypot(res.mx, res.my);
+    let pattern = "Scattered (random error)";
+    if (res.spread < 1 && avg < 1) pattern = Math.abs(res.side1 - 2) > 0.01 ? "On the mark, but the sides are the wrong length" : "On the mark";
+    else if (res.spread < 1.5) pattern = "Same wrong spot every run (consistent error)";
+    S.readouts([
+      ["Side 1 measured (run 1)", res.side1.toFixed(3) + " m", Math.abs(res.side1 - 2) < 0.01 ? "good" : "bad"],
+      ["Average end error", `x ${sgn(+res.mx.toFixed(1))}, y ${sgn(+res.my.toFixed(1))} cm`],
+      ["Spread between runs", res.spread.toFixed(1) + " cm"],
+      ["Pattern", pattern]]);
+    if (!check) return;
+    if (v.wheel >= 2 && v.slip === 0 && v.drift === 0) S.complete("sq-wheel");
+    if (v.slip >= 2) S.complete("sq-slip");
+    if (v.drift >= 1 && v.slip <= 1) S.complete("sq-drift");
+  }
+  S.onInput(() => compute(true));
+  S.buttons.rerun.addEventListener("click", () => { seed = (seed * 9301 + 49297) % 233280 + 1; compute(true); });
+  REDRAWS.push(draw);
+  compute(false);
+}
+
+/* --- 3. Vision fusion --- */
+function fuRun(v, seed) {
+  // Odometry drifts 3% long plus a little noise. Camera readings every 0.1 s.
+  // Blend gain K = Q / (Q + sqrt(Q·R)), Q = 0.1² (odometry trust), R = vision std dev².
+  const r = rng(seed), dt = 0.02, N = 400, Q = 0.01;
+  let odom = 0, est = 0, acc = 0, tot = 0;
+  const d = [], meas = [];
+  const tags = v.unplug ? 0 : v.tags;
+  const sigTrust = v.trust === "formula" ? 0.1 * v.dist * v.dist / Math.max(1, tags) : 0.7;
+  const sigReal = 0.02 * v.dist * v.dist / Math.max(1, tags);
+  const K = Q / (Q + Math.sqrt(Q * sigTrust * sigTrust));
+  for (let i = 1; i <= N; i++) {
+    const t = i * dt, truth = t;
+    const step = dt * 1.03 + gauss(r) * 0.002;
+    odom += step; est += step;
+    if (i % 5 === 0) {
+      tot++;
+      const z = truth + gauss(r) * sigReal;
+      const ok = v.enabled && tags > 0 && v.spin <= 720 && !(v.trust === "formula" && v.dist > 4);
+      if (ok) { est += K * (z - est); acc++; }
+      meas.push({ t, e: tags > 0 ? (z - truth) * 100 : null, ok });
+    }
+    d.push({ t, odom: (odom - truth) * 100, est: (est - truth) * 100 });
+  }
+  return { d, meas, acc, tot, sigTrust, K, fOdom: d[N - 1].odom, fEst: d[N - 1].est };
+}
+function simFusion(host) {
+  const S = buildSim(host, {
+    id: "fusion", title: "Blending vision with odometry",
+    intro: "The robot drives straight at 1 m/s for 8 s. Odometry slowly drifts (it thinks it went 3% farther). The camera sees tags 10 times a second, and each reading that passes the checks is blended in.",
+    aria: "Graph over 8 seconds of position error with odometry only and with vision blended in, plus each camera reading",
+    controls: [
+      { id: "dist", label: "Distance to the tags", min: 1, max: 5, step: 0.5, value: 2, unit: "m" },
+      { id: "tags", label: "Tags in view", min: 1, max: 3, step: 1, value: 1 },
+      { id: "trust", type: "select", label: "How much to trust vision", value: "fixed", options: [["fixed", "Fixed 0.7 m (main branch)"], ["formula", "Distance formula (new library)"]] },
+      { id: "spin", label: "Robot spin rate", min: 0, max: 1000, step: 50, value: 0, unit: "°/s" },
+      { id: "enabled", type: "check", label: "Vision enabled", value: true },
+      { id: "unplug", type: "check", label: "Camera unplugged", value: false }],
+    buttons: [["New random noise", "noise", true]]
+  });
+  let seed = 11, res = null;
+  function draw() {
+    if (!res) return;
+    const { w, h, ctx } = fit(S.canvas, 290);
+    const ink = css("ink"), muted = css("muted"), lineC = css("line"), gold = css("gold-fill"), bad = css("bad");
+    let lx = 10, ly = 12;
+    const leg = (label, color, kind) => {
+      const need = 24 + ctx.measureText(label).width + 16;
+      if (lx + need > w) { lx = 10; ly += 18; }
+      ctx.strokeStyle = color; ctx.fillStyle = color;
+      if (kind === "line") { ctx.lineWidth = 2.5; ln(ctx, lx, ly, lx + 16, ly); }
+      else if (kind === "dot") { ctx.globalAlpha = 0.5; ctx.beginPath(); ctx.arc(lx + 8, ly, 3, 0, 7); ctx.fill(); ctx.globalAlpha = 1; }
+      else { ctx.lineWidth = 2; ln(ctx, lx + 8, ly - 6, lx + 8, ly + 6); }
+      txt(ctx, label, lx + 22, ly, muted); lx += need;
+    };
+    leg("odometry only", muted, "line"); leg("with vision", gold, "line"); leg("camera reading", ink, "dot"); leg("reading rejected", bad, "tick");
+    const X0 = 58, X1 = w - 14, Y0 = ly + 38, Y1 = h - 24, mid = (Y0 + Y1) / 2;
+    const big = Math.max(...res.d.map(p => Math.max(Math.abs(p.odom), Math.abs(p.est))));
+    const span = Math.min(80, Math.max(5, Math.ceil(big * 1.15)));
+    const yy = e => Math.max(Y0, Math.min(Y1, mid - e / span * (Y1 - Y0) / 2)), xx = t => X0 + t / 8 * (X1 - X0);
+    ctx.strokeStyle = lineC; ctx.lineWidth = 1; ln(ctx, X0, Y0, X0, Y1); ln(ctx, X0, mid, X1, mid);
+    txt(ctx, "+" + span + " cm", X0 - 6, Y0, muted, "right"); txt(ctx, "0", X0 - 6, mid, muted, "right"); txt(ctx, "−" + span + " cm", X0 - 6, Y1, muted, "right");
+    [0, 2, 4, 6, 8].forEach(t => txt(ctx, t + " s", xx(t), Y1 + 13, muted, "center"));
+    res.meas.forEach(m => {
+      if (!m.ok) { ctx.strokeStyle = bad; ctx.lineWidth = 2; ln(ctx, xx(m.t), Y0 - 20, xx(m.t), Y0 - 10); }
+      if (m.e !== null && m.ok) { ctx.fillStyle = ink; ctx.globalAlpha = 0.4; ctx.beginPath(); ctx.arc(xx(m.t), yy(m.e), 2.5, 0, 7); ctx.fill(); ctx.globalAlpha = 1; }
+    });
+    const plot = (key, color, width) => { ctx.strokeStyle = color; ctx.lineWidth = width; ctx.beginPath(); res.d.forEach((p, i) => i ? ctx.lineTo(xx(p.t), yy(p[key])) : ctx.moveTo(xx(p.t), yy(p[key]))); ctx.stroke(); };
+    plot("odom", muted, 2); plot("est", gold, 2.5);
+  }
+  function compute(check) {
+    const v = S.vals(); res = fuRun(v, seed); draw();
+    S.readouts([
+      ["Odometry only at 8 s", sgn(+res.fOdom.toFixed(1)) + " cm", "bad"],
+      ["With vision at 8 s", sgn(+res.fEst.toFixed(1)) + " cm", Math.abs(res.fEst) < 2 ? "good" : Math.abs(res.fEst) > 10 ? "bad" : ""],
+      ["Readings used", `${res.acc} of ${res.tot}`],
+      ["Vision std dev", res.sigTrust.toFixed(2) + " m"],
+      ["Blend per reading", Math.round(res.K * 100) + "%"]]);
+    if (!check) return;
+    if (v.unplug) S.complete("fu-unplug");
+    if (v.spin > 720 && !v.unplug && v.enabled) S.complete("fu-spin");
+    if (v.dist >= 4.5 && !v.unplug && v.enabled && v.spin <= 720) {
+      state["fu-far-" + v.trust] = true; save();
+      if (state["fu-far-fixed"] && state["fu-far-formula"]) S.complete("fu-far");
+    }
+    if (v.dist >= 2 && res.acc > 0 && Math.abs(res.fEst) < 2) S.complete("fu-best");
+  }
+  S.onInput(() => compute(true));
+  S.buttons.noise.addEventListener("click", () => { seed = (seed * 9301 + 49297) % 233280 + 1; compute(true); });
+  REDRAWS.push(draw);
+  compute(false);
+}
+
+/* --- 4. Camera mount --- */
+function moSolve(d, v) {
+  // Robot faces the tag (heading 180°). Real camera: forward 0.33, side 0, yaw 0.
+  // The camera's view is correct; the robot is worked out using the mount values in the code.
+  const th = Math.PI, yaw = v.yaw * Math.PI / 180;
+  const cam = [d - 0.33, 0], rel = [-cam[0], -cam[1]];
+  const c1 = Math.cos(-th), s1 = Math.sin(-th), rc = [c1 * rel[0] - s1 * rel[1], s1 * rel[0] + c1 * rel[1]];
+  const hs = th + yaw, c2 = Math.cos(hs), s2 = Math.sin(hs), relW = [c2 * rc[0] - s2 * rc[1], s2 * rc[0] + c2 * rc[1]];
+  const camS = [-relW[0], -relW[1]], ct = Math.cos(th), st = Math.sin(th);
+  const robot = [camS[0] - (ct * v.fwd - st * v.side), camS[1] - (st * v.fwd + ct * v.side)];
+  return { robot, cam, err: Math.hypot(robot[0] - d, robot[1]) * 100 };
+}
+function simMount(host) {
+  const S = buildSim(host, {
+    id: "mount", title: "What wrong mount values do",
+    intro: "The real camera is at our test mount: forward 0.33 m, side 0, yaw 0. The sliders are what the code tells the Limelight. Make a mistake and see where vision puts the robot. Drawn to scale.",
+    aria: "Top view of the robot facing an AprilTag on a wall, showing the real robot and where vision thinks it is",
+    controls: [
+      { id: "fwd", label: "Forward (in code)", min: 0, max: 0.6, step: 0.01, value: 0.33, unit: "m", fmt: n => n.toFixed(2) },
+      { id: "side", label: "Side (in code)", min: -0.2, max: 0.2, step: 0.01, value: 0, unit: "m", fmt: n => n.toFixed(2) },
+      { id: "yaw", label: "Yaw (in code)", min: -5, max: 5, step: 0.5, value: 0, unit: "°", fmt: sgn },
+      { id: "dist", label: "Robot distance from tag", min: 1, max: 3, step: 0.5, value: 2, unit: "m" }]
+  });
+  function draw() {
+    const { w, h, ctx } = fit(S.canvas, 260);
+    const v = S.vals(), d = v.dist, r = moSolve(d, v);
+    const ink = css("ink"), muted = css("muted"), gold = css("gold-fill"), goldT = css("gold"), bad = css("bad");
+    const sc = Math.min((w - 40) / 4.2, (h - 70) / 2.3), ox = 20 + 0.3 * sc, cy = 24 + 1.15 * sc;
+    const fx = x => ox + x * sc, fy = y => cy - y * sc;
+    ctx.strokeStyle = ink; ctx.lineWidth = 4; ln(ctx, fx(0), fy(1.1), fx(0), fy(-1.1));
+    ctx.fillStyle = ink; ctx.fillRect(fx(0), fy(0.08), Math.max(3, 0.05 * sc), 0.16 * sc);
+    txt(ctx, "tag", fx(0) + 8, fy(0.2), muted);
+    [1, 2, 3].forEach(m => { ctx.strokeStyle = muted; ctx.lineWidth = 1; ln(ctx, fx(m), fy(-1.0), fx(m), fy(-1.1)); txt(ctx, m + " m", fx(m), fy(-1.1) + 12, muted, "center"); });
+    ctx.strokeStyle = ink; ctx.lineWidth = 2; ctx.strokeRect(fx(d - 0.415), fy(0.4), 0.83 * sc, 0.8 * sc);
+    ctx.lineWidth = 5; ln(ctx, fx(d - 0.415), fy(0.4), fx(d - 0.415), fy(-0.4));
+    ctx.fillStyle = gold; ctx.beginPath(); ctx.arc(fx(r.cam[0]), fy(0), 5, 0, 7); ctx.fill(); ctx.strokeStyle = ink; ctx.lineWidth = 1; ctx.stroke();
+    ctx.setLineDash([6, 4]); ctx.strokeStyle = goldT; ctx.lineWidth = 2;
+    ctx.strokeRect(fx(r.robot[0] - 0.415), fy(r.robot[1] + 0.4), 0.83 * sc, 0.8 * sc); ctx.setLineDash([]);
+    if (r.err > 0.5) { ctx.strokeStyle = bad; ctx.lineWidth = 2.5; ln(ctx, fx(d), fy(0), fx(r.robot[0]), fy(r.robot[1])); }
+    ctx.fillStyle = ink; ctx.beginPath(); ctx.arc(fx(d), fy(0), 3, 0, 7); ctx.fill();
+    txt(ctx, "solid = real robot (front faces the tag) · dashed = where vision puts it · ● camera", 10, h - 10, muted);
+  }
+  function compute(check) {
+    const v = S.vals(); draw();
+    const e = [1, 2, 3].map(m => moSolve(m, v).err), cur = moSolve(v.dist, v).err;
+    S.readouts([
+      [`Error at ${v.dist} m`, cur.toFixed(1) + " cm", cur <= 5 ? "good" : "bad"],
+      ...[1, 2, 3].map((m, i) => [`${m} m check`, `${e[i].toFixed(1)} cm · ${e[i] <= 5 ? "pass" : "fail"}`, e[i] <= 5 ? "good" : "bad"])]);
+    if (!check) return;
+    if (v.fwd <= 0.005) S.complete("mo-zero");
+    if (Math.abs(v.yaw) >= 1.5) S.complete("mo-yaw");
+    if (e[0] <= 5 && e[1] <= 5 && e[2] > 5) S.complete("mo-only3");
+  }
+  S.onInput(() => compute(true));
+  REDRAWS.push(draw);
+  compute(false);
+}
+
+/* --- 5. Alliance flip --- */
+function simFlip(host) {
+  const S = buildSim(host, {
+    id: "flip", title: "Where does drive-to-spot go on red?",
+    intro: "We give pathfindToPoseFlipped a blue-side target. On red, PathPlanner turns it around the center of the field: x → 16.54 − x, y → 8.07 − y, heading + 180°.",
+    aria: "Map of the whole field with the blue target and the matching red target",
+    controls: [
+      { id: "x", label: "Blue target x", min: 0.5, max: 16, step: 0.1, value: 2, unit: "m", fmt: n => n.toFixed(1) },
+      { id: "y", label: "Blue target y", min: 0.5, max: 7.5, step: 0.1, value: 3, unit: "m", fmt: n => n.toFixed(1) },
+      { id: "hd", label: "Blue target heading", min: -180, max: 180, step: 15, value: 0, unit: "°" },
+      { id: "al", type: "select", label: "Our alliance", value: "blue", options: [["blue", "Blue"], ["red", "Red"]] }]
+  });
+  const red = v => [16.54 - v.x, 8.07 - v.y, ((v.hd + 360) % 360) - 180];
+  function draw() {
+    const cw = Math.max(260, S.canvas.parentElement.clientWidth);
+    const { w, h, ctx } = fit(S.canvas, Math.round((cw - 40) * 8.07 / 16.54) + 64);
+    const v = S.vals(), [rx, ry, rh] = red(v);
+    const ink = css("ink"), muted = css("muted"), lineC = css("line"), blue = css("blue"), redC = css("red");
+    const sc = (w - 40) / 16.54, ox = 20, oy = 30;
+    const fx = x => ox + x * sc, fy = y => oy + (8.07 - y) * sc;
+    ctx.fillStyle = css("blue-soft"); ctx.fillRect(fx(0), fy(8.07), 1.2 * sc, 8.07 * sc);
+    ctx.fillStyle = css("red-soft"); ctx.fillRect(fx(16.54 - 1.2), fy(8.07), 1.2 * sc, 8.07 * sc);
+    ctx.strokeStyle = ink; ctx.lineWidth = 1.5; ctx.strokeRect(fx(0), fy(8.07), 16.54 * sc, 8.07 * sc);
+    ctx.setLineDash([5, 5]); ctx.strokeStyle = lineC; ctx.lineWidth = 1; ln(ctx, fx(8.27), fy(8.07), fx(8.27), fy(0)); ctx.setLineDash([]);
+    ctx.fillStyle = muted; ctx.beginPath(); ctx.arc(fx(8.27), fy(4.035), 3, 0, 7); ctx.fill();
+    txt(ctx, "blue wall", fx(0), 14, blue); txt(ctx, "red wall", fx(16.54), 14, redC, "right");
+    const bot = (x, y, hd, color, solid, label) => {
+      const s = 0.84 * sc;
+      ctx.save(); ctx.translate(fx(x), fy(y)); ctx.rotate(-hd * Math.PI / 180);
+      if (solid) { ctx.fillStyle = color; ctx.globalAlpha = 0.25; ctx.fillRect(-s / 2, -s / 2, s, s); ctx.globalAlpha = 1; }
+      else ctx.setLineDash([4, 3]);
+      ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.strokeRect(-s / 2, -s / 2, s, s); ctx.setLineDash([]);
+      ln(ctx, 0, 0, s * 0.9, 0); ln(ctx, s * 0.9, 0, s * 0.6, -s * 0.22); ln(ctx, s * 0.9, 0, s * 0.6, s * 0.22);
+      ctx.restore();
+      txt(ctx, label, fx(x), Math.min(h - 8, fy(y) + s / 2 + 14), color, "center");
+    };
+    bot(v.x, v.y, v.hd, blue, v.al === "blue", `(${v.x.toFixed(1)}, ${v.y.toFixed(1)})`);
+    bot(rx, ry, rh, redC, v.al === "red", `(${rx.toFixed(2)}, ${ry.toFixed(2)})`);
+  }
+  function compute(check) {
+    const v = S.vals(), [rx, ry, rh] = red(v); draw();
+    S.readouts([
+      ["Blue target", `(${v.x.toFixed(1)}, ${v.y.toFixed(1)}) · ${v.hd}°`],
+      ["Red target", `(${rx.toFixed(2)}, ${ry.toFixed(2)}) · ${rh}°`],
+      ["Our robot drives to", v.al === "blue" ? "the blue target" : "the red target"]]);
+    if (!check) return;
+    if (Math.abs(v.x - 8.27) <= 0.15 && Math.abs(v.y - 4.035) <= 0.15) S.complete("fl-center");
+    if (v.hd === 90) S.complete("fl-face");
+  }
+  S.onInput(() => compute(true));
+  REDRAWS.push(draw);
+  compute(false);
+}
+
+const SIMS = { pid: simPid, square: simSquare, fusion: simFusion, mount: simMount, flip: simFlip };
+let resizeTimer = 0;
+const redrawAll = () => REDRAWS.forEach(f => f());
+window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(redrawAll, 120); });
+try { matchMedia("(prefers-color-scheme: dark)").addEventListener("change", redrawAll); } catch (e) {}
+new MutationObserver(redrawAll).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
 renderAll();
 </script>
+
 
 </body></html>
