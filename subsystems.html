@@ -389,8 +389,8 @@ const SUB_CHALLENGES = {
       steps: ["Add a new line before the `error` line (line 8) that makes `double goal`: the smaller of target and 100.",
         "Change the error line to use `goal` instead of `target`.",
         "Build & run and click 110°. The arm should stop at 100°."],
-      done: "with a 110° target, the arm ends within 2° of 100°, never goes above 105°, and never hits the top stop.",
-      hint: "`Math.min(a, b)` gives the smaller of two numbers.",
+      done: "asking for 110° makes the arm do exactly what asking for 100° does, and 90° still goes to 90°. (If it swings past 100° before settling, that's tuning: raise kD from challenge 3.)",
+      hint: "`Math.min(a, b)` gives the smaller of two numbers. You can't change `target` itself, because it comes from outside your code. Make a new variable instead.",
       answerCode: "double goal = Math.min(target, 100);   // soft limit\ndouble error = goal - angle;" }
   ]
 };
@@ -565,7 +565,14 @@ function simArm(host) {
     aria: "Side view of an arm on a pivot with its target angle, and a graph of the angle and motor volts over time",
     code: ARM_CODE,
     check(ast) {
-      try { const v = armEval(ast, 0, 0, 45); if (typeof v.volts !== "number" || !isFinite(v.volts)) return { line: 0, message: "your code needs a double named volts" }; return null; }
+      // Try a low, middle and high target so mistakes inside an if show up now, not later.
+      try {
+        for (const tg of [-10, 45, 110]) {
+          const v = armEval(ast, 0, 0, tg);
+          if (typeof v.volts !== "number" || !isFinite(v.volts)) return { line: 0, message: "your code needs a double named volts" };
+        }
+        return null;
+      }
       catch (e) { return { line: e.line, message: e.message }; }
     },
     onBuilt(ast) {
@@ -576,7 +583,11 @@ function simArm(host) {
         if (r60.maxTh - 60 < 2 && Math.abs(r60.final - 60) < 1) S.complete("a-damp");
         const r110 = armScenario(ast, 110, 5);
         if (r110.maxV <= 6.0001 && r110.maxV >= 5) S.complete("a-limit");
-        if (Math.abs(r110.final - 100) < 2 && r110.maxTh < 105 && !r110.hitTop) S.complete("a-soft");
+        // Soft limit: asking for 110° must do exactly what asking for 100° does,
+        // while 90° still goes to 90° (so the arm isn't just capped lower).
+        // This doesn't depend on how well kP, kD and kG are tuned.
+        const r100 = armScenario(ast, 100, 5), r90 = armScenario(ast, 90, 5);
+        if (Math.abs(r110.final - r100.final) < 0.01 && Math.abs(r110.maxTh - r100.maxTh) < 0.01 && Math.abs(r90.final - r100.final) > 5) S.complete("a-soft");
       } catch (e) { /* runtime problems show up when it runs live */ }
     }
   });
