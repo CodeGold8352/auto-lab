@@ -1009,7 +1009,7 @@ function simShooter(host) {
   let hist = [], lowTimer = 0, feedWait = 0, spin = 0, notes = [], streak = [], scored = 0, missed = 0;
   const S = buildCodeSim(host, {
     id: "shooter", title: "Shooter control",
-    intro: "Write how many volts the flywheel motor gets, and when it's ready to shoot. You can read rpm and target. You must set a double named volts and a boolean named ready. Math.abs, Math.min, Math.max and MathUtil.clamp all work. Hold Shoot and the feeder pushes a note in whenever ready is true.",
+    intro: "Write how many volts the flywheel motor gets, and when it's ready to shoot. You can read rpm and target. You must set a double named volts and a boolean named ready. Math.abs, Math.min, Math.max and MathUtil.clamp all work. Hold Shoot and the feeder pushes a note in whenever ready is true. The starting code has ready = false, so nothing shoots until you change it (challenge 3).",
     aria: "Side view of a flywheel shooter launching notes at a goal, and a graph of the wheel speed and motor volts over time",
     code: SHOOTER_CODE,
     check(ast) {
@@ -1066,7 +1066,7 @@ function simShooter(host) {
     feedWait = Math.max(0, feedWait - 0.02);
     if (shootBtn.down && ready && feedWait === 0) { fire(); feedWait = SHOOT.FEED; }
     notes.forEach(n => n.t += 0.02 / 0.6); notes = notes.filter(n => n.t < 1);
-    spin += st.w / 60 * 0.02 * Math.PI * 2 / 8; // drawn 8× slower so the spokes are visible
+    spin += st.w / 6000 * 0.3; // drawn much slower than real so the spokes don't strobe backward
     hist.push([st.w, st.target, st.volts]); if (hist.length > 300) hist.shift();
     if (st.target === 4000 && st.vars.kV === 0 && st.w < 3500 && st.w > 500) { lowTimer += 0.02; if (lowTimer > 1.5) S.complete("s-ponly"); } else lowTimer = 0;
   }
@@ -1093,6 +1093,8 @@ function simShooter(host) {
     // ready lamp
     ctx.fillStyle = st.ready ? good : lineC; ctx.beginPath(); ctx.arc(fx + fr + 30, fy + fr - 4, 8, 0, 7); ctx.fill();
     txt(ctx, st.ready ? "ready" : "not ready", fx + fr + 44, fy + fr - 4, st.ready ? good : muted);
+    // holding Shoot does nothing until ready is true, so say why
+    if (shootBtn.down && !st.ready) txt(ctx, "Feeder waiting: ready is false", 12, 20, bad);
     const gx0 = wide ? pw + 52 : 60, gy0 = wide ? 24 : ph + 24;
     drawGraph(ctx, { x0: gx0, x1: w - 40, y0: gy0, y1: h - 24 }, hist, { min: 0, max: 6000, ticks: [0, 2000, 4000, 6000], fmt: r => r, name: "RPM" });
     S.readouts([
