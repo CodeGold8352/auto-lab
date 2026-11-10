@@ -33,7 +33,7 @@
     <section class="intro">
       <span class="eyebrow">2026–27 off-season · robot code</span>
       <h1>Adding a mechanism: subsystems</h1>
-      <p class="lede">Six labs on how to add a new mechanism, like an intake or an arm, to our robot code. In two of them you write the Java that runs the mechanism and watch it work (or jam) in a simulator.</p>
+      <p class="lede">Eight labs on how to add a new mechanism, like an intake, an arm, an elevator or a shooter, to our robot code. In four of them you write the Java that runs the mechanism and watch it work (or jam) in a simulator.</p>
       <div class="legend">
         <div><b>Change the code</b><span>Edit the Java, press Build &amp; run, and use the controls. Typos give you real Java error messages, with the line number.</span></div>
         <div><b>Try it</b><span>Hands-on tasks. Tick each step as you do it. Some need the laptop, the sim or the robot.</span></div>
@@ -240,6 +240,96 @@ m_motor.setControl(m_positionRequest.withPosition(targetRotations)); // Position
   ]
 },
 {
+  id: "elevator", sims: ["elevator"], title: "Mechanisms with feedback: an elevator", where: "Example: subsystems/Elevator.java",
+  body: `
+<p>An elevator works a lot like the arm: measure the height, compare it with the target, and correct. A few things are different.</p>
+<ul>
+<li><b>kG is the same at every height.</b> Gravity pulls the carriage straight down, along the direction it travels, whether it's at the bottom or the top. So there's no cosine: <code>volts = kP × error − kD × velocity + kG</code>.</li>
+<li><b>Units are meters, not degrees.</b> The motor's encoder counts rotations. The code converts rotations to meters using the gear ratio and the size of the spool or sprocket that pulls the carriage.</li>
+<li><b>Going down, gravity helps.</b> Lowering the carriage takes much less voltage than lifting it. Teams often limit the downward voltage so the carriage can't slam into the bottom.</li>
+<li><b>Soft limits</b>: the TalonFX can refuse to drive past a set position, so a bad target can't crash the carriage into the top.</li>
+</ul>
+<p>On the real robot it looks almost the same as the arm. Only the gravity type changes, and soft limits are added:</p>`,
+  code: `var slot0 = new Slot0Configs();
+slot0.kP = 8;                                        // example numbers: tune on the real elevator
+slot0.kD = 0.1;
+slot0.kG = 0.35;                                     // volts to hold the carriage up, at any height
+slot0.GravityType = GravityTypeValue.Elevator_Static; // kG is the same everywhere: no cosine
+m_motor.getConfigurator().apply(slot0);
+
+var limits = new SoftwareLimitSwitchConfigs()
+    .withForwardSoftLimitEnable(true).withForwardSoftLimitThreshold(kTopRotations)
+    .withReverseSoftLimitEnable(true).withReverseSoftLimitThreshold(0);
+m_motor.getConfigurator().apply(limits);
+
+m_motor.setControl(m_positionRequest.withPosition(targetRotations)); // PositionVoltage request`,
+  questions: [
+    { id: "el1", type: "num", q: "An elevator needs 1.2 V to hold the carriage up, and kP = 15 volts per meter. Someone forgot kG (it's 0). How far below the target does the carriage settle, in centimeters?", answer: 8, tol: 0.5, unit: "cm",
+      hint: "P has to make the holding voltage by itself: kP × error = 1.2 V.",
+      steps: ["kP × error = 1.2 V, so error = 1.2 ÷ 15 = 0.08 m.", "0.08 m = 8 cm.", "Same idea as the arm's droop. kG fixes it by giving the holding voltage directly."] },
+    { id: "el2", type: "mc", q: "The arm uses kG × cos(angle). Why does the elevator just use kG?",
+      options: ["Elevators are lighter than arms", "Gravity pulls straight along the elevator's travel at every height, so the holding voltage never changes", "Elevators don't need kG", "Phoenix 6 doesn't support cosine for elevators"], answer: 1,
+      hint: "Does the carriage get easier to hold when it's higher up?",
+      steps: ["An arm's lever changes as it swings: level is hardest, straight up is easiest.", "A carriage weighs the same and pulls straight down at any height.", "So the holding voltage is the same number everywhere: GravityType Elevator_Static."] },
+    { id: "el3", type: "mc", q: "The carriage is at 0.5 m and the target is 0.2 m. Which way do the P part and kG push?",
+      options: ["Both push down", "P pushes down, kG pushes up", "Both push up", "P pushes up, kG pushes down"], answer: 1,
+      hint: "Work out the sign of error = target − height. kG is always a positive number.",
+      steps: ["error = 0.2 − 0.5 = −0.3 m, so kP × error is negative: down.", "kG is always positive: up. It cancels gravity.", "That way P only has to do the moving, not the holding."] },
+    { id: "el4", type: "mc", q: "Why might you limit the elevator's downward voltage to something like −4 V, but allow +12 V going up?",
+      options: ["Motors can't run backward at full voltage", "Going down, gravity already helps, so full power would slam the carriage into the bottom", "To save battery", "Phoenix 6 requires it"], answer: 1,
+      hint: "Which direction does gravity help?",
+      steps: ["Lifting fights gravity, so it needs lots of voltage.", "Lowering gets help from gravity, so it needs much less.", "A smaller downward limit keeps it from crashing into the bottom stop."] }
+  ]
+},
+{
+  id: "shooter", sims: ["shooter"], title: "Speed control: a flywheel shooter", where: "Example: subsystems/Shooter.java",
+  body: `
+<p>The arm and elevator control a <b>position</b>. A flywheel shooter controls a <b>speed</b>: spin up to a target RPM, stay there, and only shoot once it's there.</p>
+<ul>
+<li><b>Feedforward does most of the work.</b> Spinning at a steady speed takes a steady voltage, about the same every time. <b>kV</b> is volts per unit of speed, and <b>kS</b> is the little extra to get past friction. Together, <code>kS + kV × target</code> is a good guess before there's any error at all.</li>
+<li><b>kP fixes what's left</b> and speeds up recovery, because every note that goes through the wheel slows it down.</li>
+<li><b>No kG, and usually no kD.</b> Gravity doesn't care how fast a wheel spins.</li>
+<li><b>Ready to shoot?</b> The feeder should only push a note in when the wheel is close to its target speed. A note fired too slow falls short. Too fast, it goes over.</li>
+</ul>
+<p>Phoenix 6 measures speed in <b>rotations per second</b>, not RPM. Divide RPM by 60.</p>`,
+  code: `private final VelocityVoltage m_request = new VelocityVoltage(0);
+private double m_targetRps = 0;
+
+public Shooter() {
+    var slot0 = new Slot0Configs();
+    slot0.kS = 0.25;   // volts to get past friction (example numbers: tune on the real shooter)
+    slot0.kV = 0.12;   // volts per rotation per second
+    slot0.kP = 0.1;
+    m_motor.getConfigurator().apply(slot0);
+}
+
+public void setRpm(double rpm) {
+    m_targetRps = rpm / 60.0;
+    m_motor.setControl(m_request.withVelocity(m_targetRps));
+}
+
+/** True when the wheel is within 60 RPM (1 RPS) of the target. */
+public boolean isReady() {
+    return Math.abs(m_motor.getVelocity().getValueAsDouble() - m_targetRps) < 1.0;
+}`,
+  questions: [
+    { id: "sh1", type: "num", q: "A flywheel needs 8 V to hold 4000 RPM, and kS = 0.25 V. What is kV, in volts per RPM? (Round to 4 decimal places.)", answer: 0.0019, tol: 0.0001, unit: "V/RPM",
+      hint: "Steady volts = kS + kV × speed. Solve for kV.",
+      steps: ["8 = 0.25 + kV × 4000.", "kV = (8 − 0.25) ÷ 4000 = 0.00194.", "That's about 0.0019 volts per RPM."] },
+    { id: "sh2", type: "num", q: "Phoenix 6 wants the speed in rotations per second. What is 4000 RPM in RPS?", answer: 66.67, tol: 0.1, unit: "RPS",
+      hint: "There are 60 seconds in a minute.",
+      steps: ["4000 ÷ 60 = 66.67 rotations per second."] },
+    { id: "sh3", type: "mc", q: "With only kP (kV = 0), why does the flywheel settle well below its target?",
+      options: ["The battery is low", "kP only makes voltage when there's error, and the wheel needs a lot of voltage just to keep spinning", "The wheel is too heavy", "kP is negative"], answer: 1,
+      hint: "Same reason the arm drooped without kG.",
+      steps: ["Holding 4000 RPM takes about 8 V, all the time.", "With only P, the only way to get 8 V is a big error.", "kV gives that voltage directly, so the error can go to almost zero."] },
+    { id: "sh4", type: "mc", q: "Which is the best rule for when the feeder may push a note in?",
+      options: ["As soon as the driver presses shoot", "When the speed is within a small band of the target, above or below: Math.abs(target - rpm) < 50", "When rpm is bigger than target", "Always wait exactly 1 second"], answer: 1,
+      hint: "Too slow AND too fast both miss.",
+      steps: ["Too slow: the note falls short. Too fast: it goes over.", "Math.abs makes the check work on both sides of the target.", "A fixed wait doesn't know whether the wheel has recovered from the last shot."] }
+  ]
+},
+{
   id: "wiring", title: "Adding a subsystem to the robot", where: "RobotContainer.java · Phoenix Tuner X",
   body: `
 <p>Writing the class is half the job. To put a new mechanism on the robot:</p>
@@ -301,7 +391,7 @@ m_motor.setControl(m_positionRequest.withPosition(targetRotations)); // Position
 {
   id: "simulate", title: "Simulating a subsystem", where: "WPILib physics simulation · Phoenix 6 sim",
   body: `
-<p>The arm and intake simulators on this page are simplified versions of a real technique: run a <b>physics model</b> of the mechanism and your <b>real code</b> together, 50 times a second.</p>
+<p>The simulators on this page are simplified versions of a real technique: run a <b>physics model</b> of the mechanism and your <b>real code</b> together, 50 times a second.</p>
 <p>WPILib has ready-made models: <code>DCMotorSim</code> (a motor with a load), <code>ElevatorSim</code>, and <code>SingleJointedArmSim</code>. With Phoenix 6, you feed the model's results back into the simulated motor through <code>TalonFX.getSimState()</code>, so your code reads sensor values as if the mechanism were real.</p>
 <p>Our drivetrain already does this: <code>startSimThread()</code> in <code>CommandSwerveDrivetrain</code> runs the swerve physics every 4 ms. That's why autos work in the simulator.</p>
 <p>Simulation catches logic mistakes. It can't catch a swapped wire, a wrong CAN ID, a sensor that reads backward, or a mechanism that rubs. Those only show up on the real robot.</p>`,
@@ -392,6 +482,75 @@ const SUB_CHALLENGES = {
       done: "asking for 110° makes the arm do exactly what asking for 100° does, and 90° still goes to 90°. (If it swings past 100° before settling, that's tuning: raise kD from challenge 3.)",
       hint: "`Math.min(a, b)` gives the smaller of two numbers. You can't change `target` itself, because it comes from outside your code. Make a new variable instead.",
       answerCode: "double goal = Math.min(target, 100);   // soft limit\ndouble error = goal - angle;" }
+  ],
+  elevator: [
+    { id: "e-sag", goal: "See the same sag as the arm. No code change for this one.",
+      steps: ["Click Reset to the original code (kG = 0), then Build & run.",
+        "Click the 0.6 m target button.",
+        "Wait a few seconds and read the height in the readouts."],
+      done: "the carriage has sat more than 5 cm below a 0.6 m target for 1.5 seconds with kG = 0.",
+      hint: "kP only makes voltage when there's an error. How much error does it take to make enough voltage to hold the carriage up?",
+      answer: "It settles about 8 cm low, at 0.52 m. Holding the carriage up takes 1.2 V. With kP = 15 V per meter, P only makes 1.2 V when the error is 1.2 ÷ 15 = 0.08 m." },
+    { id: "e-kg", goal: "Find a kG that holds the carriage at its target.",
+      steps: ["On line 6, change `kG` from 0.0 to a bigger number.",
+        "Build & run, click 0.6 m, and read the height.",
+        "Still low? Raise kG. Too high? Lower it.",
+        "Then try 0.3 m and 1.0 m. The same kG works at every height, because there's no cosine."],
+      done: "starting from the bottom, a 0.6 m target ends within 1 cm (0.01 m) after 5 seconds. (The page tests this itself when you build.)",
+      hint: "Use what you found in challenge 1: volts needed ≈ sag × kP = 0.08 × 15.",
+      answerCode: "double kG = 1.2;    // volts needed to hold the carriage up against gravity" },
+    { id: "e-damp", goal: "Stop the overshoot: use kD so a move to 1.0 m doesn't fly past.",
+      steps: ["Keep your kG from challenge 2.",
+        "Click 1.0 m and watch the graph. The carriage goes past 1.0 m, then comes back down.",
+        "On line 5, change `kD` to 1.0. Build and try again.",
+        "Keep raising kD until it stops overshooting."],
+      done: "starting from the bottom, a move to 1.0 m goes no higher than 1.01 m, and ends within 1 cm of 1.0 m after 5 seconds.",
+      hint: "Velocity here is in meters per second, which are small numbers, so kD has to be bigger than the arm's. Try values between 3 and 6.",
+      answerCode: "double kD = 4.5;    // volts per (meter per second): damping" },
+    { id: "e-limit", goal: "Going down, gravity helps: limit the downward voltage to −4 V so the carriage doesn't slam into the bottom. Keep full power going up.",
+      steps: ["Add a new line under the `volts` line (line 9) that clamps volts between −4 and 12.",
+        "Use `MathUtil.clamp(value, low, high)`, and save the result back into volts.",
+        "Build & run. Click 1.0 m, then 0 m, and watch the volts on the graph."],
+      done: "moving from 1.0 m down to 0, volts never goes below −4, and moving up from the bottom still uses at least 10 V.",
+      hint: "The low and high limits don't have to be the same size: `volts = MathUtil.clamp(volts, ?, ?);`",
+      answerCode: "volts = MathUtil.clamp(volts, -4, 12);   // gentle going down, full power going up" }
+  ],
+  shooter: [
+    { id: "s-ponly", goal: "See why kP alone isn't enough for a flywheel. No code change for this one.",
+      steps: ["Click Reset to the original code (kV = 0), then Build & run.",
+        "Click the 4000 RPM target button.",
+        "Wait a few seconds and read the RPM."],
+      done: "with a 4000 RPM target and kV = 0, the wheel has stayed below 3500 RPM for 1.5 seconds.",
+      hint: "Spinning at 4000 RPM takes about 8 V the whole time. How big does the error have to be for kP × error to make that much?",
+      answer: "It levels off around 2800 RPM. P only makes voltage from error, so the wheel settles where kP × error is just enough to keep it spinning, and that's far below the target. A bigger kP makes the gap smaller, but never zero." },
+    { id: "s-kv", goal: "Add feedforward: find kS and kV so the wheel reaches its target speed.",
+      steps: ["On line 6, set `kP` to 0 for now, so you can see what feedforward does by itself.",
+        "On line 4, set `kS` to 0.25.",
+        "On line 5, raise `kV` until a 4000 RPM target settles right at 4000.",
+        "Put kP back to 0.005, then check 2000 RPM too."],
+      done: "starting from a stopped wheel, it settles within 50 RPM of the target at both 2000 and 4000 RPM, within 3 seconds.",
+      hint: "About 8 V holds 4000 RPM. (8 − 0.25) ÷ 4000 ≈ 0.00194. That's the same math as question 1 in this lesson.",
+      answerCode: "double kS = 0.25;    // volts to get past friction\ndouble kV = 0.00194; // volts per RPM: the feedforward" },
+    { id: "s-ready", goal: "Tell the feeder when it's safe to shoot.",
+      steps: ["First see what goes wrong: on the last line, change `false` to `true`. Build, click 4000 RPM, and hold Shoot right away. Where do the notes go?",
+        "Now change that line so `ready` is true only when rpm is within 50 RPM of target, above OR below.",
+        "Build & run. Click 4000 RPM and hold Shoot."],
+      done: "with a 4000 RPM target, ready is true at 3970 and 4030 RPM, and false at 3900 and 4100 RPM.",
+      hint: "`error` can be negative (too fast) or positive (too slow). `Math.abs(error)` is how far off you are, either way.",
+      answer: "With `ready = true`, the feeder shoots while the wheel is still spinning up, so the first notes fall short. Checking `Math.abs(error) < 50` waits until the speed is right.",
+      answerCode: "boolean ready = Math.abs(error) < 50;   // within 50 RPM, either side" },
+    { id: "s-recover", goal: "Recover faster after each shot.",
+      steps: ["Each note slows the wheel by about 15%. Hold Shoot and watch the dips on the graph.",
+        "On line 6, raise `kP` a little at a time. Try doubling it.",
+        "Build and shoot again. The dips should get shorter."],
+      done: "after a shot drops the wheel from 4000 to 3400 RPM, it's back within 50 RPM in under 0.3 seconds.",
+      hint: "kP turns the speed error into extra voltage. A bigger kP pushes harder right after the shot. Try 0.01.",
+      answerCode: "double kP = 0.01;    // volts per RPM of error" },
+    { id: "s-rapid", goal: "Put it all together: score 5 notes in a row, fast.",
+      steps: ["Click 4000 RPM.",
+        "Hold Shoot (or click it and hold the space bar)."],
+      done: "5 notes score in a row, with no misses, in under 1.4 seconds (first shot to fifth).",
+      hint: "This needs a correct `ready` (challenge 3) and fast recovery (challenge 4)." }
   ]
 };
 
@@ -662,11 +821,298 @@ function simArm(host) {
   REDRAWS.push(draw);
 }
 
+/* Shared pieces for the elevator and shooter sims */
+// A row of target buttons; the chosen one is highlighted.
+function targetButtons(S, idPrefix, values, label, onPick) {
+  const pad = document.createElement("div"); pad.className = "pad-row";
+  const lab = document.createElement("span"); lab.className = "hint"; lab.textContent = "Target:"; pad.appendChild(lab);
+  const btns = values.map(v => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "btn ghost"; b.id = idPrefix + String(v).replace(".", "_");
+    b.textContent = label(v);
+    b.addEventListener("click", () => { onPick(v); paint(v); });
+    pad.appendChild(b); return [v, b];
+  });
+  const paint = cur => btns.forEach(([v, b]) => { b.setAttribute("aria-pressed", String(v === cur)); b.style.background = v === cur ? css("gold-fill") : ""; b.style.color = v === cur ? "#142030" : ""; });
+  S.extra.appendChild(pad);
+  return { pad, paint };
+}
+// Graph of the last 6 s. Each hist row is [value, target, volts].
+function drawGraph(ctx, box, hist, o) {
+  const { x0, x1, y0, y1 } = box, muted = css("muted"), lineC = css("line"), blue = css("blue");
+  const yA = a => y1 - (a - o.min) / (o.max - o.min) * (y1 - y0), yV = v => (y0 + y1) / 2 - v / 12 * (y1 - y0) / 2;
+  const xx = i => x0 + (i / 299) * (x1 - x0), off = 300 - hist.length;
+  ctx.strokeStyle = lineC; ctx.lineWidth = 1; ctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
+  o.ticks.forEach(a => { ln(ctx, x0, yA(a), x1, yA(a)); txt(ctx, o.fmt(a), x0 - 6, yA(a), muted, "right"); });
+  txt(ctx, "+12 V", x1 + 4, y0 + 6, blue); txt(ctx, "−12 V", x1 + 4, y1 - 6, blue);
+  txt(ctx, "last 6 s · gold: " + o.name + " · blue: volts", x0, y0 - 12, muted);
+  const line = (k, color, width, map, dash) => {
+    if (hist.length < 2) return;
+    ctx.strokeStyle = color; ctx.lineWidth = width; if (dash) ctx.setLineDash(dash); ctx.beginPath();
+    hist.forEach((p, i) => i ? ctx.lineTo(xx(off + i), map(p[k])) : ctx.moveTo(xx(off + i), map(p[k]))); ctx.stroke(); ctx.setLineDash([]);
+  };
+  line(2, blue, 1.5, yV); line(1, muted, 1.5, yA, [5, 4]); line(0, css("gold-fill"), 2.5, yA);
+}
+
+/* ===================== simulation 3: elevator ===================== */
+const ELEVATOR_CODE = `// Runs every 20 ms inside the Elevator subsystem.
+// height and target are in meters: 0 = all the way down, 1.2 = the top.
+// velocity is how fast the carriage is moving, in meters per second (+ = up).
+double kP = 15.0;   // volts per meter of error
+double kD = 0.0;    // volts per (meter per second): damping
+double kG = 0.0;    // volts needed to hold the carriage up against gravity
+
+double error = target - height;
+double volts = kP * error - kD * velocity + kG;
+`;
+// accel (m/s²) = A × volts − B × velocity − G. It takes G / A = 1.2 V to hold the carriage up.
+const ELEV = { A: 0.417, B: 3, G: 0.5, MAX: 1.2 };
+function elevEval(ast, height, vel, target) {
+  return JavaMini.run(ast, { globals: Object.assign({}, JavaMini.std), inputs: { height: JavaMini.D(height), velocity: JavaMini.D(vel), target: JavaMini.D(target) } });
+}
+function elevPhysics(s, volts) {
+  const V = Math.max(-12, Math.min(12, volts));
+  for (let k = 0; k < 20; k++) {
+    s.v += (ELEV.A * V - ELEV.B * s.v - ELEV.G) * 0.001;
+    s.x += s.v * 0.001;
+    if (s.x <= 0) { s.x = 0; if (s.v < 0) s.v = 0; }
+    if (s.x >= ELEV.MAX) { s.x = ELEV.MAX; if (s.v > 0) s.v = 0; }
+  }
+}
+function elevScenario(ast, start, target, secs) {
+  const s = { x: start, v: 0 };
+  let maxV = -1e9, minV = 1e9, maxX = -1e9;
+  for (let i = 0; i < secs * 50; i++) {
+    const v = elevEval(ast, s.x, s.v, target).volts;
+    maxV = Math.max(maxV, v); minV = Math.min(minV, v);
+    elevPhysics(s, v);
+    maxX = Math.max(maxX, s.x);
+  }
+  return { final: s.x, maxV, minV, maxX };
+}
+
+function simElevator(host) {
+  const st = { x: 0, v: 0, target: 0.6, volts: 0, vars: {} };
+  let hist = [], sagTimer = 0;
+  const S = buildCodeSim(host, {
+    id: "elevator", title: "Elevator control",
+    intro: "Write how many volts the elevator motor gets. You can read height, velocity and target, and you must set a double named volts. Positive volts lift. Math.min, Math.max and MathUtil.clamp(value, low, high) all work. The carriage sits on a stop at 0 m and can't go past 1.2 m.",
+    aria: "Side view of an elevator with its carriage and target height, and a graph of the height and motor volts over time",
+    code: ELEVATOR_CODE,
+    check(ast) {
+      try {
+        for (const tg of [0, 0.6, 1.2]) {
+          const v = elevEval(ast, 0.3, 0, tg);
+          if (typeof v.volts !== "number" || !isFinite(v.volts)) return { line: 0, message: "your code needs a double named volts" };
+        }
+        return null;
+      }
+      catch (e) { return { line: e.line, message: e.message }; }
+    },
+    onBuilt(ast) {
+      try {
+        const r6 = elevScenario(ast, 0, 0.6, 5);
+        if (Math.abs(r6.final - 0.6) < 0.01) S.complete("e-kg");
+        const r10 = elevScenario(ast, 0, 1.0, 5);
+        if (r10.maxX - 1.0 < 0.01 && Math.abs(r10.final - 1.0) < 0.01) S.complete("e-damp");
+        const down = elevScenario(ast, 1.0, 0, 4);
+        if (down.minV >= -4.0001 && r10.maxV >= 10) S.complete("e-limit");
+      } catch (e) { /* runtime problems show up when it runs live */ }
+    }
+  });
+  const tb = targetButtons(S, "elev-target-", [0, 0.3, 0.6, 1.0, 1.2], v => v.toFixed(1) + " m", v => { st.target = v; sagTimer = 0; });
+  tb.paint(st.target);
+  const drop = document.createElement("button"); drop.type = "button"; drop.className = "btn ghost"; drop.id = "elev-drop"; drop.textContent = "Drop to the bottom";
+  drop.addEventListener("click", () => { st.x = 0; st.v = 0; hist = []; sagTimer = 0; });
+  tb.pad.appendChild(drop);
+
+  function step() {
+    let v = 0;
+    const prog = S.program();
+    if (prog) {
+      try { const r = elevEval(prog, st.x, st.v, st.target); st.vars = r; v = +r.volts || 0; }
+      catch (e) { S.runtimeError(e); }
+    }
+    st.volts = Math.max(-12, Math.min(12, v));
+    elevPhysics(st, st.volts);
+    hist.push([st.x, st.target, st.volts]); if (hist.length > 300) hist.shift();
+    if (st.target === 0.6 && st.vars.kG === 0 && st.x < 0.55) { sagTimer += 0.02; if (sagTimer > 1.5) S.complete("e-sag"); } else sagTimer = 0;
+  }
+  function draw() {
+    const wide = S.canvas.parentElement.clientWidth >= 600;
+    const { w, h, ctx } = fit(S.canvas, wide ? 280 : 520);
+    const ink = css("ink"), muted = css("muted"), lineC = css("line"), gold = css("gold-fill"), goldT = css("gold");
+    const pw = wide ? w * 0.45 : w, ph = wide ? h : 260;
+    // tower
+    const top = 28, bot = ph - 30, tx = Math.min(pw * 0.35, 120), railW = 14;
+    const yH = m => bot - m / ELEV.MAX * (bot - top);
+    ctx.strokeStyle = lineC; ctx.lineWidth = 1;
+    [0, 0.3, 0.6, 0.9, 1.2].forEach(m => { ln(ctx, tx - 50, yH(m), tx - 40, yH(m)); txt(ctx, m.toFixed(1) + " m", tx - 56, yH(m), muted, "right"); });
+    ctx.fillStyle = lineC; ctx.fillRect(tx - railW, top - 8, 6, bot - top + 16); ctx.fillRect(tx + railW + 40, top - 8, 6, bot - top + 16);
+    ctx.strokeStyle = ink; ctx.lineWidth = 3; ln(ctx, tx - 30, bot + 12, tx + railW + 80, bot + 12);
+    // target
+    ctx.setLineDash([6, 4]); ctx.strokeStyle = goldT; ctx.lineWidth = 2; ln(ctx, tx - 36, yH(st.target), tx + railW + 70, yH(st.target)); ctx.setLineDash([]);
+    txt(ctx, "target " + st.target.toFixed(2) + " m", tx + railW + 52, yH(st.target) - 10, goldT);
+    // carriage (its bottom edge marks the height)
+    const cy = yH(st.x);
+    ctx.fillStyle = gold; ctx.fillRect(tx - railW + 8, cy - 26, railW * 2 + 30, 26);
+    ctx.strokeStyle = ink; ctx.lineWidth = 2; ctx.strokeRect(tx - railW + 8, cy - 26, railW * 2 + 30, 26);
+    txt(ctx, "gravity ↓", tx + railW + 52, bot - 4, muted);
+    const gx0 = wide ? pw + 48 : 56, gy0 = wide ? 24 : ph + 24;
+    drawGraph(ctx, { x0: gx0, x1: w - 40, y0: gy0, y1: h - 24 }, hist, { min: 0, max: ELEV.MAX, ticks: [0, 0.6, 1.2], fmt: m => m.toFixed(1) + " m", name: "height" });
+    S.readouts([
+      ["Height", st.x.toFixed(3) + " m"],
+      ["Target", st.target.toFixed(2) + " m"],
+      ["Error", ((st.target - st.x) * 100).toFixed(1) + " cm", Math.abs(st.target - st.x) < 0.01 ? "good" : ""],
+      ["Volts", st.volts.toFixed(2) + " V", Math.abs(st.volts) >= 11.99 ? "bad" : ""]]);
+  }
+  S.build(false);
+  robotLoop(S.canvas, step, draw);
+  REDRAWS.push(draw);
+}
+
+/* ===================== simulation 4: shooter ===================== */
+const SHOOTER_CODE = `// Runs every 20 ms inside the Shooter subsystem.
+// rpm is how fast the flywheel is spinning now. target is the speed we want, in RPM.
+double kS = 0.0;     // volts to get past friction
+double kV = 0.0;     // volts per RPM: the feedforward
+double kP = 0.005;   // volts per RPM of error
+
+double error = target - rpm;
+double volts = kS + kV * target + kP * error;
+
+// The feeder only pushes a note into the flywheel while ready is true.
+boolean ready = false;
+`;
+// RPM change per second = A × volts − B × rpm − friction F. Free speed at 12 V ≈ 6000 RPM;
+// holding 4000 RPM takes 8 V (kS = 0.25 V, kV ≈ 0.00194 V/RPM).
+const SHOOT = { A: 851, B: 1.649, F: 213, DROP: 0.15, FEED: 0.15 };
+function shootEval(ast, rpm, target) {
+  return JavaMini.run(ast, { globals: Object.assign({}, JavaMini.std), inputs: { rpm: JavaMini.D(rpm), target: JavaMini.D(target) } });
+}
+function shootPhysics(s, volts) {
+  const V = Math.max(-12, Math.min(12, volts));
+  for (let k = 0; k < 20; k++) {
+    const drive = SHOOT.A * V - SHOOT.B * s.w;
+    // friction always slows the wheel, and can hold a stopped wheel still
+    if (Math.abs(s.w) < 1 && Math.abs(drive) <= SHOOT.F) { s.w = 0; continue; }
+    const fr = s.w > 0 || (s.w === 0 && drive > 0) ? SHOOT.F : -SHOOT.F;
+    s.w += (drive - fr) * 0.001;
+  }
+}
+function shootSettle(ast, target, secs, s) {
+  for (let i = 0; i < secs * 50; i++) shootPhysics(s, shootEval(ast, s.w, target).volts);
+  return s;
+}
+
+function simShooter(host) {
+  const st = { w: 0, target: 4000, volts: 0, ready: false, vars: {} };
+  let hist = [], lowTimer = 0, feedWait = 0, spin = 0, notes = [], streak = [], scored = 0, missed = 0;
+  const S = buildCodeSim(host, {
+    id: "shooter", title: "Shooter control",
+    intro: "Write how many volts the flywheel motor gets, and when it's ready to shoot. You can read rpm and target. You must set a double named volts and a boolean named ready. Math.abs, Math.min, Math.max and MathUtil.clamp all work. Hold Shoot and the feeder pushes a note in whenever ready is true.",
+    aria: "Side view of a flywheel shooter launching notes at a goal, and a graph of the wheel speed and motor volts over time",
+    code: SHOOTER_CODE,
+    check(ast) {
+      try {
+        for (const [rpm, tg] of [[0, 0], [3000, 4000], [4100, 4000]]) {
+          const v = shootEval(ast, rpm, tg);
+          if (typeof v.volts !== "number" || !isFinite(v.volts)) return { line: 0, message: "your code needs a double named volts" };
+          if (typeof v.ready !== "boolean") return { line: 0, message: "your code needs a boolean named ready (true or false)" };
+        }
+        return null;
+      }
+      catch (e) { return { line: e.line, message: e.message }; }
+    },
+    onBuilt(ast) {
+      try {
+        const okAt = tg => Math.abs(shootSettle(ast, tg, 3, { w: 0 }).w - tg) < 50;
+        if (okAt(2000) && okAt(4000)) S.complete("s-kv");
+        const rd = rpm => shootEval(ast, rpm, 4000).ready;
+        if (rd(3970) && rd(4030) && !rd(3900) && !rd(4100)) S.complete("s-ready");
+        // Recovery: settle at 4000, knock 600 RPM off, time how long until it's within 50 again.
+        const s = shootSettle(ast, 4000, 3, { w: 0 });
+        if (Math.abs(s.w - 4000) < 50) {
+          s.w -= 600;
+          let t = 0;
+          while (t < 2 && Math.abs(s.w - 4000) >= 50) { shootPhysics(s, shootEval(ast, s.w, 4000).volts); t += 0.02; }
+          if (t < 0.3) S.complete("s-recover");
+        }
+      } catch (e) { /* runtime problems show up when it runs live */ }
+    }
+  });
+  const tb = targetButtons(S, "shoot-target-", [0, 2000, 4000, 5000], v => v ? v + " RPM" : "Off", v => { st.target = v; lowTimer = 0; });
+  tb.paint(st.target);
+  const shootBtn = makeHold(tb.pad, "Shoot (hold)", "shoot-btn");
+
+  function fire() {
+    const rpm = st.w, good = st.target > 0 && Math.abs(rpm - st.target) <= 100;
+    notes.push({ t: 0, power: st.target > 0 ? rpm / st.target : 0, good });
+    st.w *= 1 - SHOOT.DROP;
+    if (good) { scored++; streak.push(clock); if (streak.length > 5) streak.shift(); }
+    else { missed++; streak = []; }
+    if (streak.length === 5 && streak[4] - streak[0] < 1.4) S.complete("s-rapid");
+  }
+  let clock = 0;
+  function step() {
+    clock += 0.02;
+    let v = 0, ready = false;
+    const prog = S.program();
+    if (prog) {
+      try { const r = shootEval(prog, st.w, st.target); st.vars = r; v = +r.volts || 0; ready = r.ready === true; }
+      catch (e) { S.runtimeError(e); }
+    }
+    st.volts = Math.max(-12, Math.min(12, v)); st.ready = ready;
+    shootPhysics(st, st.volts);
+    feedWait = Math.max(0, feedWait - 0.02);
+    if (shootBtn.down && ready && feedWait === 0) { fire(); feedWait = SHOOT.FEED; }
+    notes.forEach(n => n.t += 0.02 / 0.6); notes = notes.filter(n => n.t < 1);
+    spin += st.w / 60 * 0.02 * Math.PI * 2 / 8; // drawn 8× slower so the spokes are visible
+    hist.push([st.w, st.target, st.volts]); if (hist.length > 300) hist.shift();
+    if (st.target === 4000 && st.vars.kV === 0 && st.w < 3500 && st.w > 500) { lowTimer += 0.02; if (lowTimer > 1.5) S.complete("s-ponly"); } else lowTimer = 0;
+  }
+  function draw() {
+    const wide = S.canvas.parentElement.clientWidth >= 600;
+    const { w, h, ctx } = fit(S.canvas, wide ? 280 : 520);
+    const ink = css("ink"), muted = css("muted"), lineC = css("line"), gold = css("gold-fill"), good = css("good"), bad = css("bad");
+    const pw = wide ? w * 0.45 : w, ph = wide ? h : 260;
+    // flywheel
+    const fx = 52, fy = ph - 60, fr = 30;
+    ctx.strokeStyle = ink; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(fx, fy, fr, 0, 7); ctx.stroke();
+    for (let k = 0; k < 4; k++) { const a = spin + k * Math.PI / 2; ln(ctx, fx, fy, fx + fr * Math.cos(a), fy + fr * Math.sin(a)); }
+    // goal: the opening a note at exactly the target speed lands in
+    const gx = pw - 40, gy = 50;
+    ctx.strokeStyle = ink; ctx.lineWidth = 3; ln(ctx, gx - 22, gy, gx - 22, gy + 30); ln(ctx, gx + 22, gy, gx + 22, gy + 30); ln(ctx, gx - 22, gy + 30, gx + 22, gy + 30);
+    txt(ctx, "goal", gx, gy - 10, muted, "center");
+    // notes: right speed lands in the goal, too slow drops short, too fast flies over
+    notes.forEach(n => {
+      const x0 = fx, y0 = fy - fr;
+      const [xe, ye] = n.good ? [gx, gy + 20] : n.power < 1 ? [fx + (gx - fx) * Math.max(0.2, n.power * 0.8), ph - 8] : [gx + 30, gy - 30];
+      const x = x0 + (xe - x0) * n.t, y = y0 + (ye - y0) * n.t - 70 * 4 * n.t * (1 - n.t);
+      ctx.fillStyle = n.good ? gold : bad; ctx.beginPath(); ctx.arc(x, y, 7, 0, 7); ctx.fill(); ctx.strokeStyle = ink; ctx.lineWidth = 1.5; ctx.stroke();
+    });
+    // ready lamp
+    ctx.fillStyle = st.ready ? good : lineC; ctx.beginPath(); ctx.arc(fx + fr + 30, fy + fr - 4, 8, 0, 7); ctx.fill();
+    txt(ctx, st.ready ? "ready" : "not ready", fx + fr + 44, fy + fr - 4, st.ready ? good : muted);
+    const gx0 = wide ? pw + 52 : 60, gy0 = wide ? 24 : ph + 24;
+    drawGraph(ctx, { x0: gx0, x1: w - 40, y0: gy0, y1: h - 24 }, hist, { min: 0, max: 6000, ticks: [0, 2000, 4000, 6000], fmt: r => r, name: "RPM" });
+    S.readouts([
+      ["RPM", st.w.toFixed(0)],
+      ["Target", st.target ? st.target + " RPM" : "off"],
+      ["Error", (st.target - st.w).toFixed(0) + " RPM", st.target && Math.abs(st.target - st.w) < 50 ? "good" : ""],
+      ["Volts", st.volts.toFixed(2) + " V", Math.abs(st.volts) >= 11.99 ? "bad" : ""],
+      ["ready", st.ready ? "true" : "false", st.ready ? "good" : ""],
+      ["Scored · missed", scored + " · " + missed, missed && !scored ? "bad" : ""]]);
+  }
+  S.build(false);
+  robotLoop(S.canvas, step, draw);
+  REDRAWS.push(draw);
+}
+
 Lab.start({
   key: "cg-subsystems-lab-v1",
   lessons: SUB_LESSONS,
   challenges: SUB_CHALLENGES,
-  sims: { intake: simIntake, arm: simArm }
+  sims: { intake: simIntake, arm: simArm, elevator: simElevator, shooter: simShooter }
 });
 </script>
 </body>

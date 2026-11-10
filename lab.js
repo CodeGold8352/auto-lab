@@ -32,7 +32,7 @@ const graded = q => q.type !== "write";
 const isDone = q => !!(state[q.id] && (graded(q) ? state[q.id].answered : state[q.id].revealed));
 const taskDone = t => t.steps.every((_, i) => state[t.id] && state[t.id][i]);
 const parseNum = s => { const v = parseFloat(String(s).replace(",", ".").replace(/[^\d.\-]/g, "")); return isNaN(v) ? null : v; };
-const fmt = n => String(Math.round(n * 1000) / 1000);
+const fmt = n => (n !== 0 && Math.abs(n) < 0.01 ? String(+n.toPrecision(3)) : String(Math.round(n * 1000) / 1000));
 const norm = s => String(s).trim().toLowerCase().replace(/\s+/g, "");
 const sgn = n => (n > 0 ? "+" : "") + n;
 
