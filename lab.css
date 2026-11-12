@@ -104,6 +104,7 @@ h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(40px, 
 .status { display: inline-block; font-family: var(--font-body); font-size: 12px; font-weight: 600; letter-spacing: .03em; padding: 2px 8px; border-radius: 99px; background: var(--gold-soft); color: var(--gold); vertical-align: middle; margin-left: 8px; }
 .prose { max-width: 68ch; display: grid; gap: 12px; }
 .prose p { margin: 0; }
+.prose a { color: var(--gold); text-underline-offset: 2px; }
 .prose ul, .prose ol { margin: 0; padding-left: 22px; display: grid; gap: 4px; }
 .prose table { border-collapse: collapse; font-size: 14px; }
 .tbl { overflow-x: auto; }
