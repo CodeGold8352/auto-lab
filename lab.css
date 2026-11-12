@@ -81,6 +81,8 @@ body { background: var(--bg); color: var(--ink); font-family: var(--font-body); 
 .reset { justify-self: start; background: none; border: 1px solid var(--line); color: var(--muted); border-radius: 6px; padding: 6px 10px; font: inherit; font-size: 13px; cursor: pointer; }
 .reset.armed { border-color: var(--bad); color: var(--bad); }
 .reset:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+/* Reset progress sits in the top-right corner of the window, above everything else */
+.reset.corner { position: fixed; top: max(12px, env(safe-area-inset-top, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); z-index: 50; background: var(--surface); box-shadow: 0 1px 4px rgba(0,0,0,.12); }
 
 /* Main */
 main { display: grid; gap: 56px; min-width: 0; }

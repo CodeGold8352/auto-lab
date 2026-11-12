@@ -778,13 +778,13 @@ const Lab = {
     let armTimer = null;
     resetBtn.addEventListener("click", () => {
       if (!resetBtn.classList.contains("armed")) {
-        resetBtn.classList.add("armed"); resetBtn.textContent = "Click again to erase everything";
-        armTimer = setTimeout(() => { resetBtn.classList.remove("armed"); resetBtn.textContent = "Start over"; }, 4000);
+        resetBtn.classList.add("armed"); resetBtn.textContent = "Click again to erase all progress";
+        armTimer = setTimeout(() => { resetBtn.classList.remove("armed"); resetBtn.textContent = "Reset progress"; }, 4000);
         return;
       }
       clearTimeout(armTimer);
       state = {}; save(); renderAll();
-      resetBtn.classList.remove("armed"); resetBtn.textContent = "Start over";
+      resetBtn.classList.remove("armed"); resetBtn.textContent = "Reset progress";
     });
     let resizeTimer = 0;
     const redrawAll = () => REDRAWS.forEach(f => f());
